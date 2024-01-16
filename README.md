@@ -67,4 +67,4 @@ To use follow these steps:
 
 
 ## License
-This plugin is released under the [MIT License](https://opensource.org/licenses/MIT).
+This plugin is released under the [MIT License](https://github.com/pathao-eng/courier-woocommerce-plugin/blob/main/LICENSE).
