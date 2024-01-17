@@ -14,6 +14,15 @@ Whether you need seamless package tracking or a user-friendly way to manage deli
 - Webhook Implementations
 - Realtime order status updates
 
+## Requirements
+- Requires at least: 6.0
+- Tested up to: 6.4
+- Requires PHP: 7.3
+- Stable tag: 3.18.3
+- Beta tag: 3.18.0-beta4
+- License: GPLv3
+
+
 ## Installation
 
 1. Download the plugin zip file.
