@@ -13,7 +13,6 @@ Pathao Courier Plugin For WordPress Woocommerce is a WordPress plugin which is d
 Whether you need seamless package tracking or a user-friendly way to manage deliveries, our plugin has you covered.
 
 == Features ==
-
 - Easy to implement
 - Sync orders to the Pathao Merchant Panel
 - Webhook Implementations
