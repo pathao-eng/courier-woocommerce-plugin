@@ -98,25 +98,23 @@ function ajax_pt_hms_create_new_order()
 function ajax_pt_wc_order_details()
 {
     
-    $orderId =  $_POST['order_id'] ?? null;
+    $orderId =  (int)$_POST['order_id'] ?? null;
 
     if (!$orderId) {
-        return wp_send_json_error('no_order_id', 'No order id found', 404);
+        wp_send_json_error('no_order_id', 'No order id found', 404);
     }
 
     $order = wc_get_order($orderId);
 
-
-
     if (!$order) {
-        return wp_send_json_error('no_order', 'No order found', 404);
+        wp_send_json_error('no_order', 'No order found', 404);
     }
 
     $orderData = $order->get_data();
     $orderItems = 0;
     $totalWeight = 0;
     // add items to order
-    $orderData['items'] = array_values(array_map(function($item) use (&$orderItems, &$totalWeight, $datePaid) {
+    $orderData['items'] = array_values(array_map(function($item) use (&$orderItems, &$totalWeight) {
 
         $quantity = $item->get_quantity();
         $totalWeight += (float)$item->get_product()->get_weight();
