@@ -172,15 +172,15 @@ function pt_hms_create_new_order($order_data)
             'recipient_name' => sanitize_text_field($order_data['recipient_name']),
             'recipient_phone' => sanitize_text_field($order_data['recipient_phone']),
             'recipient_address' => sanitize_text_field($order_data['recipient_address']),
-            'recipient_city' => sanitize_text_field($order_data['recipient_city']),
-            'recipient_zone' => sanitize_text_field($order_data['recipient_zone']),
-            'recipient_area' => sanitize_text_field($order_data['recipient_area']),
+            'recipient_city' => (int)sanitize_text_field($order_data['recipient_city']),
+            'recipient_zone' => (int)sanitize_text_field($order_data['recipient_zone']),
+            'recipient_area' => (int)sanitize_text_field($order_data['recipient_area']),
             'delivery_type' => sanitize_text_field($order_data['delivery_type']),
             'item_type' => sanitize_text_field($order_data['item_type']),
             'special_instruction' => sanitize_text_field($order_data['special_instruction']),
             'item_quantity' => sanitize_text_field($order_data['item_quantity']),
             'item_weight' => sanitize_text_field($order_data['item_weight']),
-            'amount_to_collect' => sanitize_text_field($order_data['amount_to_collect']),
+            'amount_to_collect' => round(sanitize_text_field($order_data['amount_to_collect'])),
             'item_description' => sanitize_text_field($order_data['item_description'])
         ))
     );

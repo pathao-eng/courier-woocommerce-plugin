@@ -228,6 +228,10 @@ jQuery(document).ready(function ($) {
 function concatErrorMessages(errors) {
     let concatenatedErrors = '';
 
+    if (typeof errors === 'string') {
+        return errors;
+    }
+
     for (const [key, value] of Object.entries(errors)) {
         concatenatedErrors += `${value} \n`;
     }
