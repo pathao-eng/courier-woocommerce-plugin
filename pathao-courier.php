@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Pathao Courier
  * Description: Pathao Courier
- * Version: 1.0.0
+ * Version: 1.0.4
  * Author: Pathao
  * Text Domain: pathao-courier
  * License: GPLv2 or later
