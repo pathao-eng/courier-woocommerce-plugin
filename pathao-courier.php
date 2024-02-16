@@ -6,14 +6,13 @@
  * Version: 1.0.4
  * Author: Pathao
  * Text Domain: pathao-courier
- * License: GPLv2 or later
- * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  * Requires at least: 6.0
  * Tested up to: 6.4
  * Requires PHP: 7.3
  * Stable tag: 3.18.3
  * Beta tag: 3.18.0-beta4
  * License: GPLv3
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.en.html
  */
 
 defined( 'ABSPATH' ) || exit;
