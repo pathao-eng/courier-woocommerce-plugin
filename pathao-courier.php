@@ -2,18 +2,16 @@
 
 /**
  * Plugin Name: Pathao Courier
- * Description: Pathao Courier
+ * Description: Pathao Courier plugin for WooCommerce
  * Version: 1.0.4
  * Author: Pathao
  * Text Domain: pathao-courier
- * License: GPLv2 or later
- * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  * Requires at least: 6.0
  * Tested up to: 6.4
- * Requires PHP: 7.3
- * Stable tag: 3.18.3
- * Beta tag: 3.18.0-beta4
+ * Requires PHP: 7.0
+ * Stable tag: 1.0.0
  * License: GPLv3
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  */
 
 defined( 'ABSPATH' ) || exit;
