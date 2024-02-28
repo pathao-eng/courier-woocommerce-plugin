@@ -1,7 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
 
-// Register AJAX action
 add_action('wp_ajax_get_token', 'ajax_get_token');
 add_action('wp_ajax_reset_token', 'ajax_reset_token');
 add_action('update_option_pt_hms_settings', 'pt_hms_on_option_update', 10, 3);
@@ -171,7 +170,11 @@ function pt_hms_settings_page() {
 function pt_hms_pathao_courier_page_callback() {
     echo '<div class="wrap">';
     echo '<h2>My Custom Submenu Page</h2>';
-    echo '<p>This is where the content of your custom submenu page goes.</p>';
+
+    ob_start();
+    include_once PTC_PLUGIN_TEMPLATE_DIR . 'ptc-hms-list-template.php';
+    echo ob_get_clean();
+
     echo '</div>';
 }
 
