@@ -18,6 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 defined( 'PTC_PLUGIN_URL' ) || define( 'PTC_PLUGIN_URL', WP_PLUGIN_URL . '/' . plugin_basename( dirname( __FILE__ ) ) . '/' );
 defined( 'PTC_PLUGIN_DIR' ) || define( 'PTC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+defined( 'PTC_PLUGIN_TEMPLATE_DIR' ) || define( 'PTC_PLUGIN_TEMPLATE_DIR', plugin_dir_path( __FILE__ ) . 'templates/');
 defined( 'PTC_PLUGIN_FILE' ) || define( 'PTC_PLUGIN_FILE', plugin_basename( __FILE__ ) );
 defined( 'PTC_PLUGIN_PREFIX' ) || define( 'PTC_PLUGIN_PREFIX', 'ptc' );
 
@@ -45,6 +46,12 @@ function enqueue_custom_admin_script() {
         ['jquery'],
         filemtime(plugin_dir_path( __FILE__ ) . '/js/ptc-admin-script.js'),
         true
+    );
+
+    wp_enqueue_script(
+        'ptc-admin-alpine-js',
+        'https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js',
+        ['jquery'],
     );
 
     wp_localize_script( 'ptc-admin-js', 'ptcSettings', [
