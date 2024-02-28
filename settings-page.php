@@ -3,6 +3,11 @@ defined('ABSPATH') || exit;
 
 // Register AJAX action
 add_action('wp_ajax_get_token', 'ajax_get_token');
+add_action('wp_ajax_reset_token', 'ajax_reset_token');
+add_action('update_option_pt_hms_settings', 'pt_hms_on_option_update', 10, 3);
+add_action('admin_menu', 'pt_hms_menu_page'); // Admin menu setup, Pathao Courier page
+add_action('admin_menu', 'pt_hms_settings_page'); // submenu settings page
+add_action('admin_init', 'pt_hms_settings_init');
 
 function ajax_get_token()
 {
@@ -21,8 +26,6 @@ function ajax_get_token()
     }
 }
 
-add_action('wp_ajax_reset_token', 'ajax_reset_token');
-
 function ajax_reset_token()
 {
     $token = pt_hms_get_token(true);
@@ -33,8 +36,6 @@ function ajax_reset_token()
     }
 }
 
-add_action('update_option_pt_hms_settings', 'pt_hms_on_option_update', 10, 3);
-
 function pt_hms_on_option_update($old_value, $new_value, $option)
 {
     // Reset the token stored in the database.
@@ -44,25 +45,22 @@ function pt_hms_on_option_update($old_value, $new_value, $option)
     pt_hms_get_token();
 }
 
-// Admin menu setup
-add_action('admin_menu', 'pt_hms_menu_page');
-
 // Admin menu callback
 function pt_hms_menu_page()
 {
     add_menu_page(
-        'Pathao Courier Settings',
+        'Pathao Courier',
         'Pathao Courier',
         'manage_options',
-        'pt_hms_settings',
-        'pt_hms_settings_page',
+        'pt_hms_orders',
+        'pt_hms_pathao_courier_page_callback',
         'dashicons-move',
         6
     );
 }
 
 // Render the settings page
-function pt_hms_settings_page()
+function pt_hms_settings_page_callback()
 {
     $options = get_option('pt_hms_settings');
     $all_fields_filled = isset(
@@ -156,8 +154,26 @@ function pt_hms_settings_page()
     <?php
 }
 
-// Admin init setup
-add_action('admin_init', 'pt_hms_settings_init');
+// Add submenu page to the 'Settings' menu
+function pt_hms_settings_page() {
+    add_submenu_page(
+        'pt_hms_orders',
+        'Settings',
+        'Settings',
+        'manage_options',
+        'pt_hms_settings',
+        'pt_hms_settings_page_callback'
+    );
+
+}
+
+// Callback function to display the content of the submenu page
+function pt_hms_pathao_courier_page_callback() {
+    echo '<div class="wrap">';
+    echo '<h2>My Custom Submenu Page</h2>';
+    echo '<p>This is where the content of your custom submenu page goes.</p>';
+    echo '</div>';
+}
 
 // Admin init callback
 function pt_hms_settings_init()
@@ -169,15 +185,6 @@ function pt_hms_settings_init()
     add_settings_field('client_id', 'Client ID', 'field_client_id_callback', 'pt_hms_settings', 'section_one');
     add_settings_field('client_secret', 'Client Secret', 'field_client_secret_callback', 'pt_hms_settings', 'section_one');
 
-//    add_settings_field('username', 'Username (Email)', 'field_username_callback', 'pt_hms_settings', 'section_one');
-//    add_settings_field('password', 'Password', 'field_password_callback', 'pt_hms_settings', 'section_one'); // todo: remove this
-//    add_settings_field(
-//        'default_store',
-//        'Default Store',
-//        'field_default_store_callback',
-//        'pt_hms_settings',
-//        'section_one'
-//    );
     add_settings_field('environment', 'Environment', 'field_environment_callback', 'pt_hms_settings', 'section_one');
     add_settings_field('client_webhook', 'Client Default Webhook', 'field_webhook_callback', 'pt_hms_settings', 'section_one');
     add_settings_field('client_webhook_secret', 'Client Webhook Secret', 'field_webhook_secret_callback', 'pt_hms_settings', 'section_one');
@@ -222,7 +229,6 @@ function field_webhook_secret_callback()
             The default <a href=\"https://merchant.pathao.com/courier/developer-api\">webhook</a> secret will be your client secret if you don't provide any webhook secret.
             </p>";
 }
-
 
 function field_username_callback()
 {
