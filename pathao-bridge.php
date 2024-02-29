@@ -7,6 +7,14 @@ function get_base_url($environment = null)
     return ($environment === 'staging') ? 'https://courier-api-sandbox.pathao.com/' : 'https://api-hermes.pathao.com/';
 }
 
+function get_ptc_merchant_panel_base_url($environment = null)
+{
+    $options = get_option('pt_hms_settings');
+    $environment = $environment ?: $options['environment'] ?? 'live';
+
+    return ($environment === 'staging') ? 'https://merchant.p-stageenv.xyz/' : 'https://merchant.pathao.com/';
+}
+
 function issue_access_token($clientId = null, $clientSecret = null, $environment = null)
 {
     // Get settings from WordPress options

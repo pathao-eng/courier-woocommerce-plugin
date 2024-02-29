@@ -258,7 +258,9 @@ $search = $_GET['search'] ?? '';
                             <?php else: ?>
                                 <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                                     <span>
-                                        <?php echo $consignmentId; ?>
+                                        <a href="<?php echo get_ptc_merchant_panel_base_url() . 'courier/orders/'. $consignmentId ; ?>" class="order-view" target="_blank">
+                                             <?php echo $consignmentId; ?>
+                                        </a>
                                     </span>
                                 </td>
                             <?php endif; ?>
