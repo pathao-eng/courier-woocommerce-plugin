@@ -2,9 +2,26 @@
 
 global $wpdb;
 
-$limit = isset($_GET['limit']) ? absint($_GET['limit']) : 20;
+$minimumLimit = 20;
+$maximumLimit = 100;
+
+$limit = isset($_GET['limit']) ? absint($_GET['limit']) : $minimumLimit;
 $page = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1; // Current page number
 $search = isset( $_GET['search'] ) ?  esc_attr($_GET['search']) : '';
+$fromDate = !empty($_GET['from-date']) ? date('Y-m-d H:i:s',  strtotime(esc_attr($_GET['from-date']))) : '';
+$toDate = !empty($_GET['to-date']) ? date('Y-m-d H:i:s',  strtotime(esc_attr($_GET['to-date']))) : '';
+
+if (!$fromDate) {
+    $fromDate = '';
+}
+
+if (!$toDate) {
+    $toDate = '';
+}
+
+if ($limit < 1) {
+    $limit = $minimumLimit;
+}
 
 if ($search) {
     $limit = -1;
@@ -57,6 +74,23 @@ if ($ids) {
     $args['post__in'] = $ids;
 }
 
+if ($fromDate) {
+    $args['date_query'] = [
+        [
+            'after' => $fromDate,
+            'inclusive' => false,
+        ],
+    ];
+}
+
+if ($toDate) {
+    $args['date_query'] = $args['date_query'] ?? [];
+    $args['date_query'][] = [
+        'before' => $toDate,
+        'inclusive' => false,
+    ];
+}
+
 $orders = wc_get_orders($args);
 
 $search = $_GET['search'] ?? '';
@@ -75,14 +109,14 @@ $search = $_GET['search'] ?? '';
     <div class="tablenav top">
 
         <div class="alignleft actions">
-            <label for="filter-by-date" class="screen-reader-text">Filter by date</label>
-            <select name="m" id="filter-by-date">
-                <option selected="selected" value="0">All dates</option>
-                <option value="202402">February 2024</option>
-                <option value="202311">November 2023</option>
-                <option value="202310">October 2023</option>
-                <option value="202309">September 2023</option>
-            </select>
+            <label for="from-date" class="">From Date</label>
+            <input type="date" id="from-date" class="ptc-datepicker" name="from-date" value="<?php echo $fromDate ? date('Y-m-d', strtotime($fromDate)) : ''; ?>" placeholder="From Date">
+
+            <label for="to-date" class="">To Date</label>
+            <input type="date" id="to-date" class="ptc-datepicker" name="to-date" value="<?php echo $toDate ? date('Y-m-d', strtotime($toDate)) : ''; ?>" placeholder="To Date">
+
+            <label for="limit" class="limit">Number of items per page</label>
+            <input type="number" id="limit" name="limit" value="<?php echo $limit; ?>" class="ptc-limit" min="<?php echo $minimumLimit; ?>" max="<?php echo $maximumLimit; ?>">
             <input type="submit" name="filter_action" id="post-query-submit" class="button" value="Filter">
         </div>
         <div class="tablenav-pages one-page">
