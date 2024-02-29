@@ -24,10 +24,6 @@ if ($limit < 1) {
     $limit = $minimumLimit;
 }
 
-if ($search) {
-    $limit = -1;
-}
-
 $offset = ( $page - 1 ) * $limit;
 
 $wcOrdersPageType = 'shop_order';
@@ -57,8 +53,21 @@ if ($search) {
             FROM {$wpdb->prefix}postmeta 
             WHERE (meta_key = 'billing_first_name' AND meta_value LIKE '%$search%') OR
                     (meta_key = 'billing_last_name' AND meta_value LIKE '%$search%') OR
-                    (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%$search%')
+                    (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%$search%') OR
+                    (meta_key = 'ptc_status' AND meta_value LIKE '%$search%')
         "));
+
+    $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
+                SELECT DISTINCT id
+                FROM {$wpdb->prefix}wc_orders
+                WHERE status LIKE '%$search%'
+            "));
+
+    $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
+                SELECT DISTINCT ID
+                FROM {$wpdb->prefix}posts 
+                WHERE post_status LIKE '%$search%'
+            "));
 }
 
 if ($ordersPageType == 'pathao') {
@@ -79,7 +88,7 @@ $pathaoOrdersCount = $wpdb->get_var(/** @lang text */ "
     ");
 
 $args = [
-    'limit' => $limit,
+    'limit' => $search ? -1 : $limit,
     'offset' => $offset,
     'type' => $wcOrdersPageType,
 ];
@@ -88,6 +97,7 @@ if ((int)($search)) { // if search is a number, then its order id
     $ids[] = (int)$search;
 }
 
+$ids = array_unique($ids);
 if ($ids) {
     $args['post__in'] = $ids;
 }
