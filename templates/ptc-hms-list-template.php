@@ -10,6 +10,7 @@ $page = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1; // Current page 
 $search = isset( $_GET['search'] ) ?  esc_attr($_GET['search']) : '';
 $fromDate = !empty($_GET['from-date']) ? date('Y-m-d H:i:s',  strtotime(esc_attr($_GET['from-date']))) : '';
 $toDate = !empty($_GET['to-date']) ? date('Y-m-d H:i:s',  strtotime(esc_attr($_GET['to-date']))) : '';
+$ordersPageType = isset($_GET['orders_page_type']) ? esc_attr($_GET['orders_page_type']) : 'all';
 
 if (!$fromDate) {
     $fromDate = '';
@@ -51,7 +52,7 @@ $columns = ptc_order_list_columns();
 $ids = [];
 
 if ($search) {
-    $ids = $wpdb->get_col(/** @lang text */ "
+    $ids = $ids + $wpdb->get_col(/** @lang text */ "
             SELECT DISTINCT post_id
             FROM {$wpdb->prefix}postmeta 
             WHERE (meta_key = 'billing_first_name' AND meta_value LIKE '%$search%') OR
@@ -59,6 +60,23 @@ if ($search) {
                     (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%$search%')
         ");
 }
+
+if ($ordersPageType == 'pathao') {
+    $ids = $ids + $wpdb->get_col(/** @lang text */ "
+            SELECT DISTINCT post_id
+            FROM {$wpdb->prefix}postmeta 
+            WHERE meta_key = 'ptc_consignment_id'
+        ");
+}
+
+$allOrdersPageLink = add_query_arg('orders_page_type', 'all');
+$pathaoOrdersPageLink = add_query_arg('orders_page_type', 'pathao');
+
+$pathaoOrdersCount = $wpdb->get_var(/** @lang text */ "
+        SELECT COUNT(DISTINCT post_id)
+        FROM {$wpdb->prefix}postmeta 
+        WHERE meta_key = 'ptc_consignment_id'
+    ");
 
 $args = [
     'limit' => $limit,
@@ -97,6 +115,18 @@ $search = $_GET['search'] ?? '';
 ?>
 
 
+<ul class="subsubsub">
+    <li class="all">
+        <a href="<?php echo $siteUrl . $allOrdersPageLink  ?>" class="<?php echo $ordersPageType == 'all' || !$ordersPageType ? 'current' : '' ?>" aria-current="page">
+            All <span class="count"><?php echo $totalOrders; ?></span>
+        </a> |
+    </li>
+    <li class="wc-processing">
+        <a href="<?php echo $siteUrl . $pathaoOrdersPageLink  ?>" class="<?php echo $ordersPageType == 'pathao' ? 'current' : '' ?>">
+            Pathao Orders <span class="count">(<?php echo $pathaoOrdersCount; ?>)</span>
+        </a>
+    </li>
+</ul>
 <form id="posts-filter" method="get">
 
     <p class="search-box">
