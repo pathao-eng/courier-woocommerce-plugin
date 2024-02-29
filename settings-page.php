@@ -1,13 +1,13 @@
 <?php
 defined('ABSPATH') || exit;
-defined( 'PTC_PLUGIN_ORDERS_PAGE_TYPE' ) || define( 'PTC_PLUGIN_ORDERS_PAGE_TYPE', 'pt_hms_orders' );
+defined( 'PTC_PLUGIN_ORDERS_PAGE_TYPE' ) || define( 'PTC_PLUGIN_PAGE_TYPE', 'pt_hms_orders' );
 defined( 'PTC_PLUGIN_SETTINGS_PAGE_TYPE' ) || define( 'PTC_PLUGIN_SETTINGS_PAGE_TYPE', 'pt_hms_settings' );
 
 add_action('wp_ajax_get_token', 'ajax_get_token');
 add_action('wp_ajax_reset_token', 'ajax_reset_token');
 add_action('update_option_pt_hms_settings', 'pt_hms_on_option_update', 10, 3);
 add_action('admin_menu', 'pt_hms_menu_page'); // Admin menu setup, Pathao Courier page
-add_action('admin_menu', 'pt_hms_settings_page'); // submenu settings page
+add_action('admin_menu', 'pt_hms_orders_page'); // submenu settings page
 add_action('admin_init', 'pt_hms_settings_init');
 
 function ajax_get_token()
@@ -52,11 +52,12 @@ function pt_hms_menu_page()
         'Pathao Courier',
         'Pathao Courier',
         'manage_options',
-        PTC_PLUGIN_ORDERS_PAGE_TYPE,
-        'pt_hms_pathao_courier_page_callback',
+        PTC_PLUGIN_SETTINGS_PAGE_TYPE,
+        'pt_hms_settings_page_callback',
         'dashicons-move',
         6
     );
+
 }
 
 // Render the settings page
@@ -155,14 +156,14 @@ function pt_hms_settings_page_callback()
 }
 
 // Add submenu page to the 'Settings' menu
-function pt_hms_settings_page() {
+function pt_hms_orders_page() {
     add_submenu_page(
-        'pt_hms_orders',
-        'Settings',
-        'Settings',
+        PTC_PLUGIN_SETTINGS_PAGE_TYPE,
+        'Orders',
+        'Orders',
         'manage_options',
-        'pt_hms_settings',
-        'pt_hms_settings_page_callback'
+        PTC_PLUGIN_PAGE_TYPE,
+        'pt_hms_pathao_courier_page_callback'
     );
 
 }
