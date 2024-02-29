@@ -52,21 +52,21 @@ $columns = ptc_order_list_columns();
 $ids = [];
 
 if ($search) {
-    $ids = $ids + $wpdb->get_col(/** @lang text */ "
+    $ids =  array_merge($ids, $wpdb->get_col(/** @lang text */ "
             SELECT DISTINCT post_id
             FROM {$wpdb->prefix}postmeta 
             WHERE (meta_key = 'billing_first_name' AND meta_value LIKE '%$search%') OR
                     (meta_key = 'billing_last_name' AND meta_value LIKE '%$search%') OR
                     (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%$search%')
-        ");
+        "));
 }
 
 if ($ordersPageType == 'pathao') {
-    $ids = $ids + $wpdb->get_col(/** @lang text */ "
+    $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
             SELECT DISTINCT post_id
             FROM {$wpdb->prefix}postmeta 
             WHERE meta_key = 'ptc_consignment_id'
-        ");
+        "));
 }
 
 $allOrdersPageLink = add_query_arg('orders_page_type', 'all');
