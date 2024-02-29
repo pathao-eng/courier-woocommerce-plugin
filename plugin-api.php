@@ -8,6 +8,25 @@ add_action('wp_ajax_get_areas', 'pt_hms_ajax_get_areas');
 add_action('wp_ajax_create_order_to_ptc', 'ajax_pt_hms_create_new_order');
 add_action('wp_ajax_get_wc_order', 'ajax_pt_wc_order_details');
 
+function ptc_order_list_column_values_callback($value, $column_name, $post_meta)
+{
+    $value = $post_meta[$column_name] ?? $value;
+    return apply_filters('ptc_order_list_column_value_' . $column_name, $value);
+}
+
+function ptc_order_list_columns($columns = [])
+{
+    return apply_filters('custom_table_columns', [
+            'order_number' => __('Order', 'textdomain'),
+            'date' => __('Date', 'textdomain'),
+            'status' => __('Status', 'textdomain'),
+            'total' => __('Total', 'textdomain'),
+            'pathao' => __('Pathao Courier', 'textdomain'),
+            'pathao_status' => __('Pathao Courier Status', 'textdomain'),
+            'pathao_delivery_fee' => __('Pathao Courier Delivery Fee', 'textdomain'),
+
+        ] + $columns);
+}
 
 function pt_hms_ajax_get_stores()
 {

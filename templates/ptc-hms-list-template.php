@@ -1,168 +1,54 @@
 <?php
-function ptc_order_list_column_values_callback($value, $column_name, $post_meta) {
-    $value = $post_meta[$column_name] ?? $value;
-    return apply_filters('ptc_order_list_column_value_' . $column_name, $value);
-}
 
-function ptc_order_list_columns($columns = [])
-{
-    return apply_filters('custom_table_columns', [
-            'order_number' => __('Order', 'textdomain'),
-            'date' => __('Date', 'textdomain'),
-            'status' => __('Status', 'textdomain'),
-            'total' => __('Total', 'textdomain'),
-            'pathao' => __('Pathao Courier', 'textdomain'),
-            'pathao_status' => __('Pathao Courier Status', 'textdomain'),
-            'pathao_delivery_fee' => __('Pathao Courier Delivery Fee', 'textdomain'),
+global $wpdb;
 
-        ] + $columns);
-}
+$limit = 10;
+$page = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1; // Current page number
 
-function ptc_order_list_callback() {
+$offset = ( $page - 1 ) * $limit;
 
-    global $wpdb;
+$wcOrdersPageType = 'shop_order';
 
-    $columns = ptc_order_list_columns();
+$order_counts = wp_count_posts($wcOrdersPageType);
+$total_orders = isset($order_counts->publish) ? $order_counts->publish : 0;
 
-    $search = esc_attr($_GET['search'] ?? '');
+$last_page = ceil( $total_orders / $limit );
 
-    $ids = [];
+$columns = ptc_order_list_columns();
 
-    if ($search) {
-        $ids = $wpdb->get_col( /** @lang text */ "
+$search = esc_attr($_GET['search'] ?? '');
+
+$ids = [];
+
+if ($search) {
+    $ids = $wpdb->get_col(/** @lang text */ "
             SELECT DISTINCT post_id
             FROM {$wpdb->prefix}postmeta 
             WHERE (meta_key = 'billing_first_name' AND meta_value LIKE '%$search%') OR
                     (meta_key = 'billing_last_name' AND meta_value LIKE '%$search%') OR
                     (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%$search%')
         ");
-    }
-
-
-    $args = [
-        'limit' => -1,
-        'type' => 'shop_order',
-    ];
-
-    if ($ids)
-    {
-        $args['post__in'] = $ids;
-    }
-
-    $orders = wc_get_orders($args);
-
-    $html = '';
-
-    foreach ($orders as $order) {
-        $orderId = $order->get_id();
-        $customerName = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
-        $total = $order->get_total();
-        $consignmentId = $order->get_meta('ptc_consignment_id');
-        $currencyCode = $order->get_currency();
-        $currencySymbol = get_woocommerce_currency_symbol( $currencyCode );
-        $date = date("F jS, Y", strtotime($order->get_date_created()));
-        $editLink = get_edit_post_link($orderId);
-
-        $td = '';
-
-        foreach ($columns as $key => $column) {
-
-            switch ($key) {
-                case 'order_number':
-                    $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                        <a href="' . $editLink . '" class="order-view">
-                            <strong>Preview #' . $orderId . $customerName . '</strong>
-                            
-                        </a>
-                    </td>';
-                    break;
-
-                case 'date':
-                    $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                        <span>
-                            ' . $date . '
-                        </span>
-                    </td>';
-                    break;
-
-                case 'status':
-                    $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                        <span>
-                            ' . $order->get_status() . '
-                        </span>
-                    </td>';
-                    break;
-
-                case 'total':
-                    $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                        <span>
-                            ' . $currencySymbol . $total . '
-                        </span>
-                    </td>';
-                    break;
-
-                case 'pathao':
-
-                    if (!$consignmentId) {
-                        $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                                    <button class="ptc-open-modal-button" data-order-id="'. $orderId .'">Send with Pathao</button>
-                                </td>';
-                    } else {
-                        $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                                    <span>
-                                        ' . $consignmentId . '
-                                    </span>
-                                </td>';
-                    }
-
-                    break;
-
-                case 'pathao_status':
-                    $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                        <span>
-                            ' . ucfirst(get_post_meta($orderId, 'ptc_status', true)) . '
-                        </span>
-                    </td>';
-                    break;
-
-                case 'pathao_delivery_fee':
-                    $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                        <span>
-                            ' . get_post_meta($orderId, 'ptc_delivery_fee', true) . '
-                        </span>
-                    </td>';
-                    break;
-
-                default:
-                    $columnValue = ptc_order_list_column_values_callback("", $column, $orderId);
-                    $td .= '<td>
-                                <span>' . esc_html($columnValue) . '</span>
-                            </td>';
-            }
-
-        }
-
-        $html .= '
-            <tr id="post-33" class="iedit author-self level-0 post-33 type-shop_order status-wc-processing post-password-required hentry">
-                <th scope="row" class="check-column">			
-                    <input id="cb-select-33" type="checkbox" name="post[]" value="'. $orderId .'">
-                </th>
-                '. $td .'
-            </tr>
-        ';
-
-    }
-
-    $html .= '</table>';
-
-    echo $html;
 }
 
-add_action('ptc_order_list', 'ptc_order_list_callback');
+
+$args = [
+    'limit' => $limit,
+    'offset' => $offset,
+    'type' => $wcOrdersPageType,
+];
+
+if ((int)($search)) { // if search is a number, then its order id
+    $ids[] = (int)$search;
+}
+
+if ($ids) {
+    $args['post__in'] = $ids;
+}
+
+$orders = wc_get_orders($args);
 
 $search = $_GET['search'] ?? '';
 ?>
-
 
 
 <form id="posts-filter" method="get">
@@ -188,33 +74,142 @@ $search = $_GET['search'] ?? '';
             <input type="submit" name="filter_action" id="post-query-submit" class="button" value="Filter">
         </div>
         <div class="tablenav-pages one-page">
-            <span class="displaying-num">11 items</span>
-            <span class="pagination-links"><span class="tablenav-pages-navspan button disabled" aria-hidden="true">«</span>
+            <span class="displaying-num"><?php echo count($orders); ?> items</span>
+            <span class="pagination-links"><span class="tablenav-pages-navspan button disabled"
+                                                 aria-hidden="true">«</span>
             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">‹</span>
-            <span class="paging-input"><label for="current-page-selector" class="screen-reader-text">Current Page</label><input class="current-page" id="current-page-selector" type="text" name="paged" value="1" size="1" aria-describedby="table-paging"><span class="tablenav-paging-text"> of <span class="total-pages">1</span></span></span>
+            <span class="paging-input"><label for="current-page-selector"
+                                              class="screen-reader-text">Current Page</label><input class="current-page"
+                                                                                                    id="current-page-selector"
+                                                                                                    type="text"
+                                                                                                    name="paged"
+                                                                                                    value="1" size="1"
+                                                                                                    aria-describedby="table-paging"><span
+                        class="tablenav-paging-text"> of <span class="total-pages">1</span></span></span>
             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">›</span>
             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">»</span></span></div>
         <br class="clear">
     </div>
-    <h2 class="screen-reader-text">Orders list</h2><table class="wp-list-table widefat fixed striped table-view-list posts">
+    <h2 class="screen-reader-text">Orders list</h2>
+    <table class="wp-list-table widefat fixed striped table-view-list posts">
         <thead>
-            <tr>
-                <td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-1" type="checkbox">
-                     <label for="cb-select-all-1">
-                         <span class="screen-reader-text">Select All</span>
-                     </label>
-                </td>
+        <tr>
+            <td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-1" type="checkbox">
+                <label for="cb-select-all-1">
+                    <span class="screen-reader-text">Select All</span>
+                </label>
+            </td>
 
-                <?php foreach (ptc_order_list_columns() as $column): ?>
-                    <th scope="col" id="order_number" class="manage-column column-order_number column-primary sortable desc">
-                        <span> <?php echo $column ?> </span>
-                    </th>
-                <?php endforeach; ?>
-            </tr>
+            <?php foreach (ptc_order_list_columns() as $column): ?>
+                <th scope="col" id="order_number"
+                    class="manage-column column-order_number column-primary sortable desc">
+                    <span> <?php echo $column ?> </span>
+                </th>
+            <?php endforeach; ?>
+        </tr>
         </thead>
 
         <tbody id="the-list">
-            <?php do_action('ptc_order_list'); ?>
+            <?php foreach ($orders as $order): ?>
+
+            <?php
+                $orderId = $order->get_id();
+                $customerName = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
+                $total = $order->get_total();
+                $consignmentId = $order->get_meta('ptc_consignment_id');
+                $currencyCode = $order->get_currency();
+                $currencySymbol = get_woocommerce_currency_symbol($currencyCode);
+                $date = date("F jS, Y", strtotime($order->get_date_created()));
+                $editLink = get_edit_post_link($orderId);
+            ?>
+
+            <tr id="post-33" class="author-self level-0 post-<?php echo $orderId ?> type-shop_order">
+                <th scope="row" class="check-column">
+                    <input id="cb-select-<?php echo $orderId ?>" type="checkbox" name="post[]" value="<?php echo $orderId ?>">
+                </th>
+
+                <?php foreach ($columns as $key => $column): ?>
+
+                    <?php switch ($key):
+                        case 'order_number': ?>
+                               <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                    <a href="<?php echo $editLink; ?>" class="order-view">
+                                        <strong>#<?php echo $orderId .'-'. $customerName;  ?></strong>
+                                    </a>
+                                </td>
+                        <?php break; ?>
+
+                        <?php case 'date': ?>
+                            <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                        <span>
+                                            <?php echo $date; ?>
+                                        </span>
+                            </td>
+                        <?php break; ?>
+
+                        <?php case 'status': ?>
+                            <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                        <span>
+                                           <?php echo $order->get_status(); ?>
+                                        </span>
+                            </td>
+                        <?php break; ?>
+
+                        <?php case 'total': ?>
+                            <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                        <span>
+                                            <?php echo $currencySymbol . $total; ?>
+                                        </span>
+                            </td>
+                        <?php break; ?>
+
+                        <?php case 'pathao': ?>
+
+                            <?php if (!$consignmentId): ?>
+                                <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                    <button class="ptc-open-modal-button" data-order-id="<?php echo $orderId ?>">Send with Pathao</button>
+                                </td>
+                            <?php else: ?>
+                                <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                    <span>
+                                        <?php echo $consignmentId; ?>
+                                    </span>
+                                </td>
+                            <?php endif; ?>
+
+                        <?php break; ?>
+
+                        <?php case 'pathao_status': ?>
+                            <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                        <span>
+                                           <?php echo ucfirst(get_post_meta($orderId, 'ptc_status', true)); ?>
+                                        </span>
+                            </td>
+                        <?php break; ?>
+
+
+                        <?php case 'pathao_delivery_fee': ?>
+                            <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                        <span>
+                                            <?php echo get_post_meta($orderId, 'ptc_delivery_fee', true); ?>
+                                        </span>
+                            </td>
+                        <?php break; ?>
+
+                        <?php default:
+
+                            $columnValue = ptc_order_list_column_values_callback("", $column, $orderId);
+                        ?>
+                            <td>
+                                <span><?php echo esc_html($columnValue); ?></span>
+                            </td>
+
+                    <?php endswitch; ?>
+
+                <?php endforeach; ?>
+
+                <?php endforeach; ?>
+            </tr>
         </tbody>
 
     </table>
