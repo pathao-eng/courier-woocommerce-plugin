@@ -1,4 +1,105 @@
 <?php
+// Step 1: Register a Filter Hook for Columns
+function custom_table_columns($columns) {
+    // Allow others to modify the columns array
+    $columns = apply_filters('custom_table_columns', $columns);
+    return $columns;
+}
+
+// Step 2: Register a Filter Hook for Column Values
+function custom_table_column_values($value, $column_name, $post_meta) {
+    // Allow others to modify the column values
+    $value = isset($post_meta[$column_name]) ? $post_meta[$column_name] : $value;
+    $value = apply_filters('custom_table_column_value_' . $column_name, $value);
+    return $value;
+}
+
+// Step 3: Define a Function to Output the Table
+function custom_table_list_function() {
+    // Get the columns array
+    $columns = custom_table_columns(array('Column 1', 'Column 2'));
+
+    // Get orders with metadata
+    $orders = wc_get_orders(array(
+        'limit' => -1, // Retrieve all orders
+        'meta_query' => array(
+            array(
+                'key' => 'ptc_consignment_id',
+            ),
+        ),
+    ));
+
+    $html = '';
+
+    // Loop through orders
+    foreach ($orders as $order) {
+        // Get order data
+        $orderId = $order->get_id();
+        $customerName = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
+        $total = $order->get_total();
+        $consignmentId = $order->get_meta('ptc_consignment_id');
+        $currencyCode = $order->get_currency();
+        $currencySymbol = get_woocommerce_currency_symbol( $currencyCode );
+        $date = date("F jS, Y", strtotime($order->get_date_created()));
+        $editLink = get_edit_post_link($orderId);
+
+        $html .= '
+            <tr id="post-33" class="iedit author-self level-0 post-33 type-shop_order status-wc-processing post-password-required hentry">
+                <th scope="row" class="check-column">			
+                    <input id="cb-select-33" type="checkbox" name="post[]" value="'. $orderId .'">
+                </th>
+                <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                    <a href="#" class="order-preview" data-order-id="33" title="Preview">
+                        Preview
+                    </a>
+                    <a href="'.$editLink.'" class="order-view">
+                        <strong>#'.$orderId . $customerName .'</strong>
+                    </a>
+                </td>
+                <td class="order_date column-order_date" data-colname="Date">
+                    <time datetime="'. $date .'" title="'. $date .'">'. $date .'</time>
+                </td>
+                <td class="order_status column-order_status" data-colname="Status">
+                    <mark class="order-status status-processing tips">
+                        <span>Processing</span>
+                    </mark>
+                </td>
+                <td class="order_total column-order_total" data-colname="Total">
+                    <span class="woocommerce-Price-currencySymbol">
+                        '.$currencySymbol.'</span> '.$total.'</span>
+                    </span>
+                </td>
+                <td class="pathao column-pathao" data-colname="Pathao Courier">
+                   '.$consignmentId.'
+                </td>
+                <td class="pathao_status column-pathao_status" data-colname="Pathao Courier Status">
+                    <span id="33"> Pending </span>
+                </td>
+                <td class="pathao_delivery_fee column-pathao_delivery_fee" data-colname="Pathao Courier Delivery Fee">
+                    <span id="ptc_delivery_fee-33"> 130 </span>
+                </td>		
+            </tr>
+        ';
+
+    }
+
+    // Close your table HTML
+    $html .= '</table>';
+
+    // Output the HTML
+    echo $html;
+}
+
+// Step 4: Hook Your Function to the Action
+add_action('custom_table_list', 'custom_table_list_function');
+
+// Step 5: Extend Columns
+function custom_extend_columns($columns) {
+    // Add extra column
+    $columns[] = 'Extra Column';
+    return $columns;
+}
+add_filter('custom_table_columns', 'custom_extend_columns');
 
 ?>
 
@@ -34,7 +135,7 @@
             <span class="paging-input"><label for="current-page-selector" class="screen-reader-text">Current Page</label><input class="current-page" id="current-page-selector" type="text" name="paged" value="1" size="1" aria-describedby="table-paging"><span class="tablenav-paging-text"> of <span class="total-pages">1</span></span></span>
             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">›</span>
             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">»</span></span></div>
-            <br class="clear">
+        <br class="clear">
     </div>
     <h2 class="screen-reader-text">Orders list</h2><table class="wp-list-table widefat fixed striped table-view-list posts">
         <thead>
@@ -44,46 +145,11 @@
         </thead>
 
         <tbody id="the-list">
-        <tr id="post-47" class="iedit author-self level-0 post-47 type-shop_order status-wc-processing post-password-required hentry">
-            <th scope="row" class="check-column">			<input id="cb-select-47" type="checkbox" name="post[]" value="47">
-                <label for="cb-select-47">
-				<span class="screen-reader-text">
-				Select Order – February 28, 2024 @ 09:26 AM				</span>
-                </label>
-                <div class="locked-indicator">
-                    <span class="locked-indicator-icon" aria-hidden="true"></span>
-                    <span class="screen-reader-text">
-				“Order – February 28, 2024 @ 09:26 AM” is locked				</span>
-                </div>
-            </th><td class="order_number column-order_number has-row-actions column-primary" data-colname="Order"><a href="#" class="order-preview" data-order-id="47" title="Preview">Preview</a><a href="http://hermes-wp.local/wp-admin/post.php?post=47&amp;action=edit" class="order-view"><strong>#47 Sagar Dash</strong></a></td><td class="order_date column-order_date" data-colname="Date"><time datetime="2024-02-28T09:26:52+00:00" title="February 28, 2024 9:26 am">3 hours ago</time></td><td class="order_status column-order_status" data-colname="Status"><mark class="order-status status-processing tips"><span>Processing</span></mark></td><td class="billing_address column-billing_address hidden" data-colname="Billing">Sagar Dash, Pathao, 653, Gabtalla, Moghbazar, Dhaka, 1212<span class="description">via Cash on delivery</span></td><td class="shipping_address column-shipping_address hidden" data-colname="Ship to"><a target="_blank" href="https://maps.google.com/maps?&amp;q=653%2C%20Gabtalla%2C%20%2C%20Moghbazar%2C%20BD-13%2C%201212%2C%20BD&amp;z=16">Sagar Dash, Pathao, 653, Gabtalla, Moghbazar, Dhaka, 1212</a><span class="description">via Free shipping</span></td><td class="order_total column-order_total" data-colname="Total"><span class="tips"><span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">$</span>38.00</span></span></td><td class="wc_actions column-wc_actions hidden" data-colname="Actions"><p><a class="button wc-action-button wc-action-button-complete complete" href="http://hermes-wp.local/wp-admin/admin-ajax.php?action=woocommerce_mark_order_status&amp;status=completed&amp;order_id=47&amp;_wpnonce=9341383fc6" aria-label="Complete">Complete</a></p></td><td class="pathao column-pathao" data-colname="Pathao Courier"><span class="ptc-assign-area"><button class="ptc-open-modal-button" data-order-id="47">Send with Pathao</button></span></td><td class="pathao_status column-pathao_status" data-colname="Pathao Courier Status"><span id="47">  </span></td><td class="pathao_delivery_fee column-pathao_delivery_fee" data-colname="Pathao Courier Delivery Fee"><span id="ptc_delivery_fee-47">  </span></td>		</tr>
-        <tr id="post-46" class="iedit author-self level-0 post-46 type-shop_order status-wc-processing post-password-required hentry">
-            <th scope="row" class="check-column">			<input id="cb-select-46" type="checkbox" name="post[]" value="46">
-                <label for="cb-select-46">
-				<span class="screen-reader-text">
-				Select Order – February 15, 2024 @ 07:38 PM				</span>
-                </label>
-                <div class="locked-indicator">
-                    <span class="locked-indicator-icon" aria-hidden="true"></span>
-                    <span class="screen-reader-text">
-				“Order – February 15, 2024 @ 07:38 PM” is locked				</span>
-                </div>
-            </th><td class="order_number column-order_number has-row-actions column-primary" data-colname="Order"><a href="#" class="order-preview" data-order-id="46" title="Preview">Preview</a><a href="http://hermes-wp.local/wp-admin/post.php?post=46&amp;action=edit" class="order-view"><strong>#46 Sagar Dash</strong></a></td><td class="order_date column-order_date" data-colname="Date"><time datetime="2024-02-15T19:38:06+00:00" title="February 15, 2024 7:38 pm">Feb 15, 2024</time></td><td class="order_status column-order_status" data-colname="Status"><mark class="order-status status-processing tips"><span>Processing</span></mark></td><td class="billing_address column-billing_address hidden" data-colname="Billing">Sagar Dash, Pathao, 653, Gabtalla, Moghbazar, Dhaka, 1212<span class="description">via Cash on delivery</span></td><td class="shipping_address column-shipping_address hidden" data-colname="Ship to"><a target="_blank" href="https://maps.google.com/maps?&amp;q=653%2C%20Gabtalla%2C%20%2C%20Moghbazar%2C%20BD-13%2C%201212%2C%20BD&amp;z=16">Sagar Dash, Pathao, 653, Gabtalla, Moghbazar, Dhaka, 1212</a><span class="description">via Free shipping</span></td><td class="order_total column-order_total" data-colname="Total"><span class="tips"><span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">$</span>43.00</span></span></td><td class="wc_actions column-wc_actions hidden" data-colname="Actions"><p><a class="button wc-action-button wc-action-button-complete complete" href="http://hermes-wp.local/wp-admin/admin-ajax.php?action=woocommerce_mark_order_status&amp;status=completed&amp;order_id=46&amp;_wpnonce=9341383fc6" aria-label="Complete">Complete</a></p></td><td class="pathao column-pathao" data-colname="Pathao Courier"><pre> DS150224Y356TQ </pre></td><td class="pathao_status column-pathao_status" data-colname="Pathao Courier Status"><span id="46"> Pending </span></td><td class="pathao_delivery_fee column-pathao_delivery_fee" data-colname="Pathao Courier Delivery Fee"><span id="ptc_delivery_fee-46"> 145 </span></td>		</tr>
-        <tr id="post-33" class="iedit author-self level-0 post-33 type-shop_order status-wc-processing post-password-required hentry">
-            <th scope="row" class="check-column">			<input id="cb-select-33" type="checkbox" name="post[]" value="33">
-                <label for="cb-select-33">
-				<span class="screen-reader-text">
-				Select Order – September 17, 2023 @ 07:50 AM				</span>
-                </label>
-                <div class="locked-indicator">
-                    <span class="locked-indicator-icon" aria-hidden="true"></span>
-                    <span class="screen-reader-text">
-				“Order – September 17, 2023 @ 07:50 AM” is locked				</span>
-                </div>
-            </th><td class="order_number column-order_number has-row-actions column-primary" data-colname="Order"><a href="#" class="order-preview" data-order-id="33" title="Preview">Preview</a><a href="http://hermes-wp.local/wp-admin/post.php?post=33&amp;action=edit" class="order-view"><strong>#33 Sagar Dash</strong></a></td><td class="order_date column-order_date" data-colname="Date"><time datetime="2023-09-17T07:50:24+00:00" title="September 17, 2023 7:50 am">Sep 17, 2023</time></td><td class="order_status column-order_status" data-colname="Status"><mark class="order-status status-processing tips"><span>Processing</span></mark></td><td class="billing_address column-billing_address hidden" data-colname="Billing">Sagar Dash, Pathao, Dhaka, Dhaka, Dhaka, 1212<span class="description">via Cash on delivery</span></td><td class="shipping_address column-shipping_address hidden" data-colname="Ship to"><a target="_blank" href="https://maps.google.com/maps?&amp;q=Dhaka%2C%20%2C%20Dhaka%2C%20BD-13%2C%201212%2C%20BD&amp;z=16">Sagar Dash, Pathao, Dhaka, Dhaka, Dhaka, 1212</a><span class="description">via Free shipping</span></td><td class="order_total column-order_total" data-colname="Total"><span class="tips"><span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">$</span>100.00</span></span></td><td class="wc_actions column-wc_actions hidden" data-colname="Actions"><p><a class="button wc-action-button wc-action-button-complete complete" href="http://hermes-wp.local/wp-admin/admin-ajax.php?action=woocommerce_mark_order_status&amp;status=completed&amp;order_id=33&amp;_wpnonce=9341383fc6" aria-label="Complete">Complete</a></p></td><td class="pathao column-pathao" data-colname="Pathao Courier"><pre> DO211123BXPVDM </pre></td><td class="pathao_status column-pathao_status" data-colname="Pathao Courier Status"><span id="33"> Pending </span></td><td class="pathao_delivery_fee column-pathao_delivery_fee" data-colname="Pathao Courier Delivery Fee"><span id="ptc_delivery_fee-33"> 130 </span></td>		</tr>
+            <?php do_action('custom_table_list'); ?>
         </tbody>
 
         <tfoot>
-        <tr>
+            <tr>
             <td class="manage-column column-cb check-column"><input id="cb-select-all-2" type="checkbox">
                 <label for="cb-select-all-2"><span class="screen-reader-text">Select All</span></label></td><th scope="col" class="manage-column column-order_number column-primary sortable desc"><a href="http://hermes-wp.local/wp-admin/edit.php?post_type=shop_order&amp;orderby=ID&amp;order=asc"><span>Order</span><span class="sorting-indicators"><span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span></span> <span class="screen-reader-text">Sort ascending.</span></a></th><th scope="col" class="manage-column column-order_date sortable desc"><a href="http://hermes-wp.local/wp-admin/edit.php?post_type=shop_order&amp;orderby=date&amp;order=asc"><span>Date</span><span class="sorting-indicators"><span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span></span> <span class="screen-reader-text">Sort ascending.</span></a></th><th scope="col" class="manage-column column-order_status">Status</th><th scope="col" class="manage-column column-billing_address hidden">Billing</th><th scope="col" class="manage-column column-shipping_address hidden">Ship to</th><th scope="col" class="manage-column column-order_total sortable desc"><a href="http://hermes-wp.local/wp-admin/edit.php?post_type=shop_order&amp;orderby=order_total&amp;order=asc"><span>Total</span><span class="sorting-indicators"><span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span></span> <span class="screen-reader-text">Sort ascending.</span></a></th><th scope="col" class="manage-column column-wc_actions hidden">Actions</th><th scope="col" class="manage-column column-pathao">Pathao Courier</th><th scope="col" class="manage-column column-pathao_status">Pathao Courier Status</th><th scope="col" class="manage-column column-pathao_delivery_fee">Pathao Courier Delivery Fee</th>	</tr>
         </tfoot>
@@ -99,7 +165,7 @@
             <span class="screen-reader-text">Current Page</span><span id="table-paging" class="paging-input"><span class="tablenav-paging-text">1 of <span class="total-pages">1</span></span></span>
             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">›</span>
             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">»</span></span></div>
-            <br class="clear">
+        <br class="clear">
     </div>
 
 </form>
