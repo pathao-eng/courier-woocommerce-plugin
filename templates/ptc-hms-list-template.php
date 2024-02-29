@@ -83,11 +83,18 @@ function ptc_order_list_callback() {
 
                 case 'pathao':
 
-                    $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                        <span>
-                            ' . $consignmentId . '
-                        </span>
-                    </td>';
+                    if (!$consignmentId) {
+                        $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                    <button class="ptc-open-modal-button" data-order-id="'. $orderId .'">Send with Pathao</button>
+                                </td>';
+                    } else {
+                        $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                    <span>
+                                        ' . $consignmentId . '
+                                    </span>
+                                </td>';
+                    }
+
                     break;
 
                 case 'pathao_status':
