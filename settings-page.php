@@ -1,5 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
+defined( 'PTC_PLUGIN_ORDERS_PAGE_TYPE' ) || define( 'PTC_PLUGIN_ORDERS_PAGE_TYPE', 'pt_hms_orders' );
+defined( 'PTC_PLUGIN_SETTINGS_PAGE_TYPE' ) || define( 'PTC_PLUGIN_SETTINGS_PAGE_TYPE', 'pt_hms_settings' );
 
 add_action('wp_ajax_get_token', 'ajax_get_token');
 add_action('wp_ajax_reset_token', 'ajax_reset_token');
@@ -44,14 +46,13 @@ function pt_hms_on_option_update($old_value, $new_value, $option)
     pt_hms_get_token();
 }
 
-// Admin menu callback
 function pt_hms_menu_page()
 {
     add_menu_page(
         'Pathao Courier',
         'Pathao Courier',
         'manage_options',
-        'pt_hms_orders',
+        PTC_PLUGIN_ORDERS_PAGE_TYPE,
         'pt_hms_pathao_courier_page_callback',
         'dashicons-move',
         6

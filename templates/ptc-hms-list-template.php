@@ -140,11 +140,10 @@ add_action('ptc_order_list', 'ptc_order_list_callback');
 
     <p class="search-box">
         <label class="screen-reader-text" for="post-search-input">Search orders:</label>
-        <input type="search" id="post-search-input" name="s" value="">
-        <input type="submit" id="search-submit" class="button" value="Search orders"></p>
-
-    <input type="hidden" name="post_status" class="post_status_page" value="all">
-    <input type="hidden" name="post_type" class="post_type_page" value="shop_order">
+        <input type="search" id="post-search-input" name="search" value="">
+        <input type="hidden" name="page" class="post_type_page" value="<?php echo PTC_PLUGIN_ORDERS_PAGE_TYPE ?>">
+        <input type="submit" id="search-submit" class="button" value="Search orders">
+    </p>
 
     <div class="tablenav top">
 
