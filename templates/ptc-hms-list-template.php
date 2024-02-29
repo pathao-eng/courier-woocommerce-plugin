@@ -4,16 +4,18 @@ function ptc_order_list_column_values_callback($value, $column_name, $post_meta)
     return apply_filters('ptc_order_list_column_value_' . $column_name, $value);
 }
 
-function ptc_order_list_columns($columns = []) {
+function ptc_order_list_columns($columns = [])
+{
     return apply_filters('custom_table_columns', [
-        'Order',
-        'Date',
-        'Status',
-        'Total',
-        'Pathao Courier',
-        'Pathao Courier Status',
-        'Pathao Courier Delivery Fee',
-    ] + $columns);
+            'order_number' => __('Order', 'textdomain'),
+            'date' => __('Date', 'textdomain'),
+            'status' => __('Status', 'textdomain'),
+            'total' => __('Total', 'textdomain'),
+            'pathao' => __('Pathao Courier', 'textdomain'),
+            'pathao_status' => __('Pathao Courier Status', 'textdomain'),
+            'pathao_delivery_fee' => __('Pathao Courier Delivery Fee', 'textdomain'),
+
+        ] + $columns);
 }
 
 function ptc_order_list_callback() {
@@ -45,8 +47,8 @@ function ptc_order_list_callback() {
 
         foreach ($columns as $key => $column) {
 
-            switch ($column) {
-                case 'Order':
+            switch ($key) {
+                case 'order_number':
                     $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                         <a href="' . $editLink . '" class="order-view">
                             <strong>Preview #' . $orderId . $customerName . '</strong>
@@ -55,7 +57,7 @@ function ptc_order_list_callback() {
                     </td>';
                     break;
 
-                case 'Date':
+                case 'date':
                     $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                         <span>
                             ' . $date . '
@@ -63,7 +65,7 @@ function ptc_order_list_callback() {
                     </td>';
                     break;
 
-                case 'Status':
+                case 'status':
                     $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                         <span>
                             ' . $order->get_status() . '
@@ -71,7 +73,7 @@ function ptc_order_list_callback() {
                     </td>';
                     break;
 
-                case 'Total':
+                case 'total':
                     $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                         <span>
                             ' . $currencySymbol . $total . '
@@ -79,7 +81,7 @@ function ptc_order_list_callback() {
                     </td>';
                     break;
 
-                case 'Pathao Courier':
+                case 'pathao':
 
                     $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                         <span>
@@ -88,7 +90,7 @@ function ptc_order_list_callback() {
                     </td>';
                     break;
 
-                case 'Pathao Courier Status':
+                case 'pathao_status':
                     $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                         <span>
                             ' . ucfirst(get_post_meta($orderId, 'ptc_status', true)) . '
@@ -96,7 +98,7 @@ function ptc_order_list_callback() {
                     </td>';
                     break;
 
-                case 'Pathao Courier Delivery Fee':
+                case 'pathao_delivery_fee':
                     $td .= '<td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                         <span>
                             ' . get_post_meta($orderId, 'ptc_delivery_fee', true) . '
