@@ -2,21 +2,34 @@
 
 global $wpdb;
 
-$limit = 10;
+$limit = isset($_GET['limit']) ? absint($_GET['limit']) : 20;
 $page = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1; // Current page number
+$search = isset( $_GET['search'] ) ?  esc_attr($_GET['search']) : '';
+
+if ($search) {
+    $limit = -1;
+}
 
 $offset = ( $page - 1 ) * $limit;
 
 $wcOrdersPageType = 'shop_order';
 
-$order_counts = wp_count_posts($wcOrdersPageType);
-$total_orders = isset($order_counts->publish) ? $order_counts->publish : 0;
+$orderGroupByCounts = !$search ? (array)wp_count_posts($wcOrdersPageType) : [];
+$totalOrders = 0;
 
-$last_page = ceil( $total_orders / $limit );
+foreach ($orderGroupByCounts as $status => $count) {
+    $totalOrders += $count;
+}
+
+$lastPage = ceil( $totalOrders / $limit );
+
+$siteUrl = get_site_url();
+$nextPageLink = add_query_arg('paged', min($page + 1, $lastPage));
+$lastPageLink = add_query_arg('paged', $lastPage);
+$prevPageLink = add_query_arg('paged', max($page - 1, 1));
+$firstPageLink = add_query_arg('paged', 1);
 
 $columns = ptc_order_list_columns();
-
-$search = esc_attr($_GET['search'] ?? '');
 
 $ids = [];
 
@@ -29,7 +42,6 @@ if ($search) {
                     (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%$search%')
         ");
 }
-
 
 $args = [
     'limit' => $limit,
@@ -197,7 +209,6 @@ $search = $_GET['search'] ?? '';
                         <?php break; ?>
 
                         <?php default:
-
                             $columnValue = ptc_order_list_column_values_callback("", $column, $orderId);
                         ?>
                             <td>
@@ -214,5 +225,96 @@ $search = $_GET['search'] ?? '';
 
     </table>
 
+    <?php if (!$search || $lastPage): ?>
+
+    <div class="tablenav bottom">
+        <div class="tablenav-pages"><span class="displaying-num"><?php echo count($orders); ?>  items</span>
+            <span class="pagination-links">
+
+
+                <?php if ($page > 1): ?>
+                    <a class="first-page button " href="<?php echo $siteUrl . $firstPageLink ?>">
+                        <span class="screen-reader-text ">
+                            First page
+                        </span>
+                        <span aria-hidden="true">
+                            «
+                        </span>
+                    </a>
+
+                    <a class="prev-page button " href="<?php echo $siteUrl . $prevPageLink ?>">
+                        <span class="screen-reader-text">Previous page</span>
+                        <span aria-hidden="true">
+                            ‹
+                        </span>
+                    </a>
+
+
+                <?php else: ?>
+
+                    <span class="screen-reader-text disabled">
+                        First page
+                    </span>
+                    <span aria-hidden="true" class="tablenav-pages-navspan button disabled">
+                        «
+                    </span>
+
+                    <span class="screen-reader-text">Previous page</span>
+                    <span aria-hidden="true" class="tablenav-pages-navspan button disabled">
+                        ‹
+                    </span>
+
+                <?php endif; ?>
+
+
+
+
+                <span class="screen-reader-text">
+                    Current Page
+                </span>
+                <span id="table-paging" class="paging-input">
+                    <span class="tablenav-paging-text">
+                        <?php echo $page  ?> of
+                        <span class="total-pages">
+                            <?php echo $lastPage; ?>
+                        </span>
+                    </span>
+                </span>
+
+                <?php if ($page != $lastPage):  ?>
+
+                    <a class="next-page button" href="<?php echo $siteUrl . $nextPageLink ?>">
+                        <span class="screen-reader-text">Next page</span><span aria-hidden="true">
+                            ›
+                        </span>
+                    </a>
+                        <a class="last-page button" href="<?php echo $siteUrl . $lastPageLink ?>">
+                        <span class="screen-reader-text">
+                            Last page
+                        </span>
+                        <span aria-hidden="true">
+                            »
+                        </span>
+                    </a>
+
+                <?php  else: ?>
+
+                    <span aria-hidden="true" class="tablenav-pages-navspan button disabled" >
+                        ›
+                    </span>
+
+                    <span aria-hidden="true" class="tablenav-pages-navspan button disabled">
+                        »
+                    </span>
+
+                <?php endif; ?>
+
+
+            </span>
+        </div>
+        <br class="clear">
+    </div>
+
+    <?php endif; ?>
 
 </form>
