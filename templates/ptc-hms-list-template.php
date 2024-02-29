@@ -20,16 +20,36 @@ function ptc_order_list_columns($columns = [])
 
 function ptc_order_list_callback() {
 
+    global $wpdb;
+
     $columns = ptc_order_list_columns();
 
-    $orders = wc_get_orders([
+    $search = esc_attr($_GET['search'] ?? '');
+
+    $ids = [];
+
+    if ($search) {
+        $ids = $wpdb->get_col( /** @lang text */ "
+            SELECT DISTINCT post_id
+            FROM {$wpdb->prefix}postmeta 
+            WHERE (meta_key = 'billing_first_name' AND meta_value LIKE '%$search%') OR
+                    (meta_key = 'billing_last_name' AND meta_value LIKE '%$search%') OR
+                    (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%$search%')
+        ");
+    }
+
+
+    $args = [
         'limit' => -1,
-        'meta_query' => [
-            [
-                'key' => 'ptc_consignment_id',
-            ],
-        ],
-    ]);
+        'type' => 'shop_order',
+    ];
+
+    if ($ids)
+    {
+        $args['post__in'] = $ids;
+    }
+
+    $orders = wc_get_orders($args);
 
     $html = '';
 
@@ -140,14 +160,16 @@ function ptc_order_list_callback() {
 
 add_action('ptc_order_list', 'ptc_order_list_callback');
 
+$search = $_GET['search'] ?? '';
 ?>
+
 
 
 <form id="posts-filter" method="get">
 
     <p class="search-box">
         <label class="screen-reader-text" for="post-search-input">Search orders:</label>
-        <input type="search" id="post-search-input" name="search" value="">
+        <input type="search" id="post-search-input" name="search" value="<?php echo $search ?>">
         <input type="hidden" name="page" class="post_type_page" value="<?php echo PTC_PLUGIN_ORDERS_PAGE_TYPE ?>">
         <input type="submit" id="search-submit" class="button" value="Search orders">
     </p>

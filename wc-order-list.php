@@ -2,6 +2,14 @@
 // Hook for adding admin columns and populating them
 add_action('init', 'initialize_admin_columns');
 
+add_filter('woocommerce_get_wp_query_args', function ($wp_query_args, $query_vars) {
+    if (isset($query_vars['meta_query'])) {
+        $meta_query = $wp_query_args['meta_query'] ?? [];
+        $wp_query_args['meta_query'] = array_merge($meta_query, $query_vars['meta_query']);
+    }
+    return $wp_query_args;
+}, 10, 2);
+
 function initialize_admin_columns()
 {
     add_filter('manage_edit-shop_order_columns', 'ptc_add_column_to_order_list');
