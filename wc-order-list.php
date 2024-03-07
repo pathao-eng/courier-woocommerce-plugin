@@ -66,7 +66,20 @@ function ptc_render_store_modal_button($post_id)
 
 function render_form_group($label, $input, $formGroupClass = '')
 {
-    return sprintf('<div class="form-group %3$s"><label for="%1$s">%1$s:</label>%2$s</div>', $label, $input, $formGroupClass);
+
+    $id = strtolower(str_replace(' ', '-', $label));
+
+    return sprintf('
+        <div class="form-group %3$s">
+            <label for="%1$s">
+                %1$s:
+            </label>
+            <div class="form-input">
+                %2$s
+                <span id="%4$s" class="pt-field-error-message">error message</span>
+            </div>
+            
+        </div>', $label, $input, $formGroupClass, "{$id}-error");
 }
 
 
