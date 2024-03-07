@@ -14,13 +14,16 @@ jQuery(document).ready(function ($) {
     const orderItemsDom = $('#ptc_wc_order_items');
     const orderTotalItemsDom = $('#ptc_wc_total_order_items');
     const ptcModal = $('#ptc-custom-modal');
+    const hubSelection = $('.ptc-field-hub-selection');
 
+    console.log(ptcSettings.nonce);
     $('.column-pathao').on('click', function (e) {
         e.preventDefault();
     });
 
     $('.ptc-open-modal-button').on('click', async function (e) {
         e.preventDefault();
+        hubSelection.hide();
         var orderID = $(this).data('order-id');
         $('#ptc_wc_order_number').val(orderID);  // Set the Order ID in a hidden field
         ptcModal.show();
@@ -147,6 +150,13 @@ jQuery(document).ready(function ($) {
                 if (response.status === 401) {
                     alert('Unauthorized access. Please reset your token.');
                     return;
+                }
+
+                if (
+                    'recipient_city' in response?.responseJSON?.data.errors ||
+                    'recipient_zone' in response?.responseJSON?.data.errors
+                ) {
+                    hubSelection.show();
                 }
 
                 alert(concatErrorMessages(response?.responseJSON?.data.errors))
