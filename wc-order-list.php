@@ -64,9 +64,9 @@ function ptc_render_store_modal_button($post_id)
     return sprintf('<span class="ptc-assign-area">' . $button . '</span>', $post_id);
 }
 
-function render_form_group($label, $input)
+function render_form_group($label, $input, $formGroupClass = '')
 {
-    return sprintf('<div class="form-group"><label for="%1$s">%1$s:</label>%2$s</div>', $label, $input);
+    return sprintf('<div class="form-group %3$s"><label for="%1$s">%1$s:</label>%2$s</div>', $label, $input, $formGroupClass);
 }
 
 
@@ -83,9 +83,9 @@ function ptc_render_store_modal_content()
     $addressForm = render_form_group('Address', '<textarea id="ptc_wc_shipping_address" name="address"></textarea>');
 
     $storeForm = render_form_group('Store', '<select id="store" required name="store"><option>Select store</option></select>');
-    $citiesForm = render_form_group('City', '<select id="city" required name="city"><option>Select city</option></select>');
-    $zoneForm = render_form_group('Zone', '<select id="zone" required name="zone"><option>Select zone</option></select>');
-    $areaForm = render_form_group('Area', '<select id="area" name="area"><option>Select area</option></select>');
+    $citiesForm = render_form_group('City', '<select id="city" required name="city"><option>Select city</option></select>', 'ptc-field-hub-selection');
+    $zoneForm = render_form_group('Zone', '<select id="zone" required name="zone"><option>Select zone</option></select>', 'ptc-field-hub-selection');
+    $areaForm = render_form_group('Area', '<select id="area" name="area"><option>Select area</option></select>', 'ptc-field-hub-selection');
 
     $deliveryType = render_form_group('Delivery Type', '
             <select id="ptc_wc_delivery_type" name="ptc_wc_delivery_type">
