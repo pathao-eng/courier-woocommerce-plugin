@@ -1,5 +1,4 @@
 
-
 jQuery(document).ready(function ($) {
 
 
@@ -156,17 +155,54 @@ jQuery(document).ready(function ($) {
                     'recipient_city' in response?.responseJSON?.data.errors ||
                     'recipient_zone' in response?.responseJSON?.data.errors
                 ) {
+                    response.responseJSON.data.errors['recipient_address'] = 'Wrong address, please select the correct city and zone instead';
+
                     hubSelection.show();
                 }
 
-                alert(concatErrorMessages(response?.responseJSON?.data.errors))
+                showErrorMessages(response?.responseJSON?.data.errors);
             }
         });
 
     });
 
-});
+    function showErrorMessages(errors) {
 
+        const responseFiledMappingWithFieldLabel = {
+            'recipient_name': 'name',
+            'recipient_address': 'address',
+            'recipient_city': 'city',
+            'recipient_zone': 'zone',
+            'recipient_area': 'area',
+            'recipient_phone': 'phone',
+            'amount_to_collect': 'collectable-amount',
+            'store_id': 'store',
+            'delivery_type': 'delivery-type',
+            'item_type': 'item-type',
+            'item_quantity': 'quantity',
+            'item_weight': 'weight',
+        };
+
+        if (typeof errors === 'string') {
+            alert(errors);
+            return;
+        }
+
+        for (const [key, value] of Object.entries(errors)) {
+
+            if (responseFiledMappingWithFieldLabel[key]) {
+                const errorField = $(`#${responseFiledMappingWithFieldLabel[key]}-error`);
+                if (!errorField) {
+                    continue;
+                }
+                errorField.show();
+                errorField.html(value);
+            }
+
+            $(`#${key}`).next().html(value);
+        }
+    }
+});
 
 jQuery(document).ready(function ($) {
 
@@ -235,16 +271,3 @@ jQuery(document).ready(function ($) {
     });
 });
 
-function concatErrorMessages(errors) {
-    let concatenatedErrors = '';
-
-    if (typeof errors === 'string') {
-        return errors;
-    }
-
-    for (const [key, value] of Object.entries(errors)) {
-        concatenatedErrors += `${value} \n`;
-    }
-
-    return concatenatedErrors.trim(); // Trim leading and trailing whitespaces
-}
