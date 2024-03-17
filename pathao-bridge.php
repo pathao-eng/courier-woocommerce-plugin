@@ -174,7 +174,7 @@ function pt_hms_create_new_order($order_data)
             'Accept' => 'application/json',
             'source' => 'woocommerce'
         ),
-        'body' => json_encode(array(
+        'body' => json_encode(array_filter([
             'store_id' => sanitize_text_field($order_data['store_id']),
             'merchant_order_id' => sanitize_text_field($order_data['merchant_order_id']),
             'recipient_name' => sanitize_text_field($order_data['recipient_name']),
@@ -190,7 +190,9 @@ function pt_hms_create_new_order($order_data)
             'item_weight' => sanitize_text_field($order_data['item_weight']),
             'amount_to_collect' => round(sanitize_text_field($order_data['amount_to_collect'])),
             'item_description' => sanitize_text_field($order_data['item_description'])
-        ))
+        ], function ($value) { // remove empty values
+            return !empty($value);
+        }))
     );
 
     $response = wp_remote_post($api_url, $args);
