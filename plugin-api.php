@@ -188,7 +188,6 @@ function register_custom_endpoint() {
     ));
 }
 
-
 function ptc_webhook_handler($data) {
 
     $orderId = $data['merchant_order_id'];

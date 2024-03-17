@@ -4,7 +4,7 @@ function get_base_url($environment = null)
     $options = get_option('pt_hms_settings');
     $environment = $environment ?: $options['environment'] ?? 'live';
 
-    return ($environment === 'staging') ? 'https://courier-api-sandbox.pathao.com/' : 'https://api-hermes.pathao.com/';
+    return ($environment === 'staging') ? 'https://courier-api-sandbox.pathao.com' : 'https://api-hermes.pathao.com';
 }
 
 function get_ptc_merchant_panel_base_url($environment = null)
@@ -22,7 +22,7 @@ function issue_access_token($clientId = null, $clientSecret = null, $environment
     $clientId = ($clientId ?:  $options['client_id']) ?? '';
     $clientSecret = ($clientSecret?: $options['client_secret']) ?? '';
 
-    $base_url = get_base_url($environment) . "aladdin/api/v1/external/login";
+    $base_url = get_base_url($environment) . "/aladdin/api/v1/external/login";
 
     $response = wp_remote_post($base_url, array(
         'headers' => array(
@@ -92,7 +92,7 @@ function transformTokenResponse($refresh_response)
 
 function pt_hms_get_stores()
 {
-    $url = get_base_url() . "aladdin/api/v1/stores";
+    $url = get_base_url() . "/aladdin/api/v1/stores";
     $token = pt_hms_get_token();
 
     $args = array(
@@ -110,7 +110,7 @@ function pt_hms_get_stores()
 
 function pt_hms_get_cities()
 {
-    $url = get_base_url() . "aladdin/api/v1/countries/1/city-list";
+    $url = get_base_url() . "/aladdin/api/v1/countries/1/city-list";
     $token = pt_hms_get_token();
 
     $args = array(
@@ -128,7 +128,7 @@ function pt_hms_get_cities()
 
 function pt_hms_get_zones($city_id)
 {
-    $url = get_base_url() . "aladdin/api/v1/cities/" . $city_id . "/zone-list";
+    $url = get_base_url() . "/aladdin/api/v1/cities/" . $city_id . "/zone-list";
     $token = pt_hms_get_token();
 
     $args = array(
@@ -146,7 +146,7 @@ function pt_hms_get_zones($city_id)
 
 function pt_hms_get_areas($zone_id)
 {
-    $url = get_base_url() . "aladdin/api/v1/zones/" . $zone_id . "/area-list";
+    $url = get_base_url() . "/aladdin/api/v1/zones/" . $zone_id . "/area-list";
     $token = pt_hms_get_token();
 
     $args = array(
@@ -163,7 +163,7 @@ function pt_hms_get_areas($zone_id)
 
 function pt_hms_create_new_order($order_data)
 {
-    $api_url = get_base_url() . 'aladdin/api/v1/orders';
+    $api_url = get_base_url() . '/aladdin/api/v1/orders';
     $token = pt_hms_get_token();
 
     $args = array(
