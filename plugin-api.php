@@ -51,6 +51,9 @@ function pt_hms_ajax_get_zones()
     }
 }
 
+/**
+ * @return void
+ */
 function pt_hms_ajax_get_areas()
 {
     if (isset($_POST['zone_id'])) {
@@ -94,7 +97,7 @@ function ajax_pt_hms_create_new_order()
     $order = wc_get_order($orderId);
 
     if (!$order) {
-        return wp_send_json_error('no_order', 'No order found', 404);
+        wp_send_json_error('no_order', 'No order found', 404);
     }
 
     // Call function to create a new order
