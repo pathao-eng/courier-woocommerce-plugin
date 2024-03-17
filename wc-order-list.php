@@ -55,10 +55,16 @@ function ptc_render_store_modal_button($post_id)
 {
     $consignmentId = get_post_meta($post_id, 'ptc_consignment_id', true);
 
-    $button = sprintf('<button class="ptc-open-modal-button" data-order-id="%s">Send with Pathao</button>', $post_id);
+    $button = sprintf('<button class="ptc-open-modal-button" data-order-id="%s">%s</button>', $post_id, __('Send with Pathao', 'textdomain'));
 
     if ($consignmentId) {
-        return sprintf('<pre> %s </pre>', $consignmentId);
+
+        return sprintf('<a href="%s" class="order-view" target="_blank">
+                                    %s
+                              </a>',
+            get_ptc_merchant_panel_base_url() . '/courier/orders/' . $consignmentId,
+            $consignmentId
+        );
     }
 
     return sprintf('<span class="ptc-assign-area">' . $button . '</span>', $post_id);

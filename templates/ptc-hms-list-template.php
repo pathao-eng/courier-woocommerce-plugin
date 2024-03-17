@@ -253,12 +253,14 @@ $search = $_GET['search'] ?? '';
 
                             <?php if (!$consignmentId): ?>
                                 <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                                    <button class="ptc-open-modal-button" data-order-id="<?php echo $orderId ?>">Send with Pathao</button>
+                                    <button class="ptc-open-modal-button" data-order-id="<?php echo $orderId ?>">
+                                        <?php echo __('Send with Pathao', 'textdomain') ?>
+                                    </button>
                                 </td>
                             <?php else: ?>
                                 <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                                     <span>
-                                        <a href="<?php echo get_ptc_merchant_panel_base_url() . 'courier/orders/'. $consignmentId ; ?>" class="order-view" target="_blank">
+                                        <a href="<?php echo get_ptc_merchant_panel_base_url() . '/courier/orders/'. $consignmentId ; ?>" class="order-view" target="_blank">
                                              <?php echo $consignmentId; ?>
                                         </a>
                                     </span>
@@ -269,18 +271,18 @@ $search = $_GET['search'] ?? '';
 
                         <?php case 'pathao_status': ?>
                             <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                                        <span>
-                                           <?php echo ucfirst(get_post_meta($orderId, 'ptc_status', true)); ?>
-                                        </span>
+                                <span>
+                                   <?php echo ucfirst(get_post_meta($orderId, 'ptc_status', true)); ?>
+                                </span>
                             </td>
                         <?php break; ?>
 
 
                         <?php case 'pathao_delivery_fee': ?>
                             <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                                        <span>
-                                            <?php echo get_post_meta($orderId, 'ptc_delivery_fee', true); ?>
-                                        </span>
+                                <span>
+                                    <?php echo get_post_meta($orderId, 'ptc_delivery_fee', true); ?>
+                                </span>
                             </td>
                         <?php break; ?>
 
