@@ -55,6 +55,7 @@ function enqueue_custom_admin_script() {
     );
 
     wp_localize_script( 'ptc-admin-js', 'ptcSettings', [
-        'nonce' => wp_create_nonce( 'wp_rest' )
+        'nonce' => wp_create_nonce( 'wp_rest' ),
+        'merchantPanelBaseUrl' => get_ptc_merchant_panel_base_url(),
     ]);
 }

@@ -15,11 +15,6 @@ jQuery(document).ready(function ($) {
     const ptcModal = $('#ptc-custom-modal');
     const hubSelection = $('.ptc-field-hub-selection');
 
-    console.log(ptcSettings.nonce);
-    $('.column-pathao').on('click', function (e) {
-        e.preventDefault();
-    });
-
     $('.ptc-open-modal-button').on('click', async function (e) {
         e.preventDefault();
         hubSelection.hide();
@@ -134,10 +129,15 @@ jQuery(document).ready(function ($) {
                 order_data: orderData
             },
             success: function (response) {
-               let consignmentId = response.data.consignment_id;
-               let deliveryFee = response.data.delivery_fee;
+               let consignmentId = response.data?.consignment_id;
+               let deliveryFee = response.data?.delivery_fee;
 
-               $(`[data-order-id="${orderId}"].ptc-open-modal-button`).parent().html(`<pre> ${consignmentId} </pre>`);
+               $(`[data-order-id="${orderId}"].ptc-open-modal-button`).parent().html(`
+                    <a href="${ptcSettings?.merchantPanelBaseUrl}/courier/orders/${consignmentId}" class="order-view" target="_blank">
+                      ${consignmentId}
+                    </a>
+               `);
+
                $(`span#${orderId}`).html(`Pending`);
                $(`span#ptc_delivery_fee-${orderId}`).html(deliveryFee);
 
