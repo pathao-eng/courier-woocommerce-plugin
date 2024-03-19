@@ -1,105 +1,398 @@
 <?php
 
+global $wpdb;
+
+$minimumLimit = 20;
+$maximumLimit = 100;
+
+$limit = isset($_GET['limit']) ? absint($_GET['limit']) : $minimumLimit;
+$page = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1; // Current page number
+$search = isset( $_GET['search'] ) ?  esc_attr($_GET['search']) : '';
+$fromDate = !empty($_GET['from-date']) ? date('Y-m-d H:i:s',  strtotime(esc_attr($_GET['from-date']))) : '';
+$toDate = !empty($_GET['to-date']) ? date('Y-m-d H:i:s',  strtotime(esc_attr($_GET['to-date']))) : '';
+$ordersPageType = isset($_GET['orders_page_type']) ? esc_attr($_GET['orders_page_type']) : 'all';
+
+if (!$fromDate) {
+    $fromDate = '';
+}
+
+if (!$toDate) {
+    $toDate = '';
+}
+
+if ($limit < 1) {
+    $limit = $minimumLimit;
+}
+
+$offset = ( $page - 1 ) * $limit;
+
+$wcOrdersPageType = 'shop_order';
+
+$orderGroupByCounts = !$search ? (array)wp_count_posts($wcOrdersPageType) : [];
+$totalOrders = 0;
+
+foreach ($orderGroupByCounts as $status => $count) {
+    $totalOrders += $count;
+}
+
+$lastPage = ceil( $totalOrders / $limit );
+
+$siteUrl = get_site_url();
+$nextPageLink = add_query_arg('paged', min($page + 1, $lastPage));
+$lastPageLink = add_query_arg('paged', $lastPage);
+$prevPageLink = add_query_arg('paged', max($page - 1, 1));
+$firstPageLink = add_query_arg('paged', 1);
+
+$columns = ptc_order_list_columns();
+
+$ids = [];
+
+if ($search) {
+    $ids =  array_merge($ids, $wpdb->get_col(/** @lang text */ "
+            SELECT DISTINCT post_id
+            FROM {$wpdb->prefix}postmeta 
+            WHERE (meta_key = 'billing_first_name' AND meta_value LIKE '%$search%') OR
+                    (meta_key = 'billing_last_name' AND meta_value LIKE '%$search%') OR
+                    (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%$search%') OR
+                    (meta_key = 'ptc_status' AND meta_value LIKE '%$search%')
+        "));
+
+    $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
+                SELECT DISTINCT id
+                FROM {$wpdb->prefix}wc_orders
+                WHERE status LIKE '%$search%'
+            "));
+
+    $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
+                SELECT DISTINCT ID
+                FROM {$wpdb->prefix}posts 
+                WHERE post_status LIKE '%$search%'
+            "));
+}
+
+if ($ordersPageType == 'pathao') {
+    $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
+            SELECT DISTINCT post_id
+            FROM {$wpdb->prefix}postmeta 
+            WHERE meta_key = 'ptc_consignment_id'
+        "));
+}
+
+$allOrdersPageLink = add_query_arg('orders_page_type', 'all');
+$pathaoOrdersPageLink = add_query_arg('orders_page_type', 'pathao');
+
+$pathaoOrdersCount = $wpdb->get_var(/** @lang text */ "
+        SELECT COUNT(DISTINCT post_id)
+        FROM {$wpdb->prefix}postmeta 
+        WHERE meta_key = 'ptc_consignment_id'
+    ");
+
+$args = [
+    'limit' => $search ? -1 : $limit,
+    'offset' => $offset,
+    'type' => $wcOrdersPageType,
+];
+
+if ((int)($search)) { // if search is a number, then its order id
+    $ids[] = (int)$search;
+}
+
+$ids = array_unique($ids);
+if ($ids) {
+    $args['post__in'] = $ids;
+}
+
+if ($fromDate) {
+    $args['date_query'] = [
+        [
+            'after' => $fromDate,
+            'inclusive' => false,
+        ],
+    ];
+}
+
+if ($toDate) {
+    $args['date_query'] = $args['date_query'] ?? [];
+    $args['date_query'][] = [
+        'before' => $toDate,
+        'inclusive' => false,
+    ];
+}
+
+$orders = wc_get_orders($args);
+
+$search = $_GET['search'] ?? '';
 ?>
 
 
+<ul class="subsubsub">
+    <li class="all">
+        <a href="<?php echo $siteUrl . $allOrdersPageLink  ?>" class="<?php echo $ordersPageType == 'all' || !$ordersPageType ? 'current' : '' ?>" aria-current="page">
+            All <span class="count"><?php echo $totalOrders; ?></span>
+        </a> |
+    </li>
+    <li class="wc-processing">
+        <a href="<?php echo $siteUrl . $pathaoOrdersPageLink  ?>" class="<?php echo $ordersPageType == 'pathao' ? 'current' : '' ?>">
+            Pathao Orders <span class="count">(<?php echo $pathaoOrdersCount; ?>)</span>
+        </a>
+    </li>
+</ul>
 <form id="posts-filter" method="get">
 
     <p class="search-box">
         <label class="screen-reader-text" for="post-search-input">Search orders:</label>
-        <input type="search" id="post-search-input" name="s" value="">
-        <input type="submit" id="search-submit" class="button" value="Search orders"></p>
+        <input type="search" id="post-search-input" name="search" value="<?php echo $search ?>">
+        <input type="hidden" name="page" class="post_type_page" value="<?php echo PTC_PLUGIN_PAGE_TYPE ?>">
+        <input type="submit" id="search-submit" class="button" value="Search orders">
+    </p>
 
-    <input type="hidden" name="post_status" class="post_status_page" value="all">
-    <input type="hidden" name="post_type" class="post_type_page" value="shop_order">
-
-
-
-    <input type="hidden" id="_wpnonce" name="_wpnonce" value="f0b40e5e22"><input type="hidden" name="_wp_http_referer" value="/wp-admin/edit.php?post_type=shop_order">	<div class="tablenav top">
+    <div class="tablenav top">
 
         <div class="alignleft actions">
-            <label for="filter-by-date" class="screen-reader-text">Filter by date</label>
-            <select name="m" id="filter-by-date">
-                <option selected="selected" value="0">All dates</option>
-                <option value="202402">February 2024</option>
-                <option value="202311">November 2023</option>
-                <option value="202310">October 2023</option>
-                <option value="202309">September 2023</option>
-            </select>
+            <label for="from-date" class="">From Date</label>
+            <input type="date" id="from-date" class="ptc-datepicker" name="from-date" value="<?php echo $fromDate ? date('Y-m-d', strtotime($fromDate)) : ''; ?>" placeholder="From Date">
+
+            <label for="to-date" class="">To Date</label>
+            <input type="date" id="to-date" class="ptc-datepicker" name="to-date" value="<?php echo $toDate ? date('Y-m-d', strtotime($toDate)) : ''; ?>" placeholder="To Date">
+
+            <label for="limit" class="limit">Number of items per page</label>
+            <input type="number" id="limit" name="limit" value="<?php echo $limit; ?>" class="ptc-limit" min="<?php echo $minimumLimit; ?>" max="<?php echo $maximumLimit; ?>">
             <input type="submit" name="filter_action" id="post-query-submit" class="button" value="Filter">
         </div>
-        <div class="tablenav-pages one-page"><span class="displaying-num">11 items</span>
-            <span class="pagination-links"><span class="tablenav-pages-navspan button disabled" aria-hidden="true">«</span>
+        <div class="tablenav-pages one-page">
+            <span class="displaying-num"><?php echo count($orders); ?> items</span>
+            <span class="pagination-links"><span class="tablenav-pages-navspan button disabled"
+                                                 aria-hidden="true">«</span>
             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">‹</span>
-            <span class="paging-input"><label for="current-page-selector" class="screen-reader-text">Current Page</label><input class="current-page" id="current-page-selector" type="text" name="paged" value="1" size="1" aria-describedby="table-paging"><span class="tablenav-paging-text"> of <span class="total-pages">1</span></span></span>
+            <span class="paging-input"><label for="current-page-selector"
+                                              class="screen-reader-text">Current Page</label><input class="current-page"
+                                                                                                    id="current-page-selector"
+                                                                                                    type="text"
+                                                                                                    name="paged"
+                                                                                                    value="1" size="1"
+                                                                                                    aria-describedby="table-paging"><span
+                        class="tablenav-paging-text"> of <span class="total-pages">1</span></span></span>
             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">›</span>
             <span class="tablenav-pages-navspan button disabled" aria-hidden="true">»</span></span></div>
-            <br class="clear">
+        <br class="clear">
     </div>
-    <h2 class="screen-reader-text">Orders list</h2><table class="wp-list-table widefat fixed striped table-view-list posts">
+    <h2 class="screen-reader-text">Orders list</h2>
+    <table class="wp-list-table widefat fixed striped table-view-list posts">
         <thead>
         <tr>
             <td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-1" type="checkbox">
-                <label for="cb-select-all-1"><span class="screen-reader-text">Select All</span></label></td><th scope="col" id="order_number" class="manage-column column-order_number column-primary sortable desc"><a href="http://hermes-wp.local/wp-admin/edit.php?post_type=shop_order&amp;orderby=ID&amp;order=asc"><span>Order</span><span class="sorting-indicators"><span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span></span> <span class="screen-reader-text">Sort ascending.</span></a></th><th scope="col" id="order_date" class="manage-column column-order_date sortable desc"><a href="http://hermes-wp.local/wp-admin/edit.php?post_type=shop_order&amp;orderby=date&amp;order=asc"><span>Date</span><span class="sorting-indicators"><span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span></span> <span class="screen-reader-text">Sort ascending.</span></a></th><th scope="col" id="order_status" class="manage-column column-order_status">Status</th><th scope="col" id="billing_address" class="manage-column column-billing_address hidden">Billing</th><th scope="col" id="shipping_address" class="manage-column column-shipping_address hidden">Ship to</th><th scope="col" id="order_total" class="manage-column column-order_total sortable desc"><a href="http://hermes-wp.local/wp-admin/edit.php?post_type=shop_order&amp;orderby=order_total&amp;order=asc"><span>Total</span><span class="sorting-indicators"><span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span></span> <span class="screen-reader-text">Sort ascending.</span></a></th><th scope="col" id="wc_actions" class="manage-column column-wc_actions hidden">Actions</th><th scope="col" id="pathao" class="manage-column column-pathao">Pathao Courier</th><th scope="col" id="pathao_status" class="manage-column column-pathao_status">Pathao Courier Status</th><th scope="col" id="pathao_delivery_fee" class="manage-column column-pathao_delivery_fee">Pathao Courier Delivery Fee</th>	</tr>
+                <label for="cb-select-all-1">
+                    <span class="screen-reader-text">Select All</span>
+                </label>
+            </td>
+
+            <?php foreach (ptc_order_list_columns() as $column): ?>
+                <th scope="col" id="order_number"
+                    class="manage-column column-order_number column-primary sortable desc">
+                    <span> <?php echo $column ?> </span>
+                </th>
+            <?php endforeach; ?>
+        </tr>
         </thead>
 
         <tbody id="the-list">
-        <tr id="post-47" class="iedit author-self level-0 post-47 type-shop_order status-wc-processing post-password-required hentry">
-            <th scope="row" class="check-column">			<input id="cb-select-47" type="checkbox" name="post[]" value="47">
-                <label for="cb-select-47">
-				<span class="screen-reader-text">
-				Select Order – February 28, 2024 @ 09:26 AM				</span>
-                </label>
-                <div class="locked-indicator">
-                    <span class="locked-indicator-icon" aria-hidden="true"></span>
-                    <span class="screen-reader-text">
-				“Order – February 28, 2024 @ 09:26 AM” is locked				</span>
-                </div>
-            </th><td class="order_number column-order_number has-row-actions column-primary" data-colname="Order"><a href="#" class="order-preview" data-order-id="47" title="Preview">Preview</a><a href="http://hermes-wp.local/wp-admin/post.php?post=47&amp;action=edit" class="order-view"><strong>#47 Sagar Dash</strong></a></td><td class="order_date column-order_date" data-colname="Date"><time datetime="2024-02-28T09:26:52+00:00" title="February 28, 2024 9:26 am">3 hours ago</time></td><td class="order_status column-order_status" data-colname="Status"><mark class="order-status status-processing tips"><span>Processing</span></mark></td><td class="billing_address column-billing_address hidden" data-colname="Billing">Sagar Dash, Pathao, 653, Gabtalla, Moghbazar, Dhaka, 1212<span class="description">via Cash on delivery</span></td><td class="shipping_address column-shipping_address hidden" data-colname="Ship to"><a target="_blank" href="https://maps.google.com/maps?&amp;q=653%2C%20Gabtalla%2C%20%2C%20Moghbazar%2C%20BD-13%2C%201212%2C%20BD&amp;z=16">Sagar Dash, Pathao, 653, Gabtalla, Moghbazar, Dhaka, 1212</a><span class="description">via Free shipping</span></td><td class="order_total column-order_total" data-colname="Total"><span class="tips"><span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">$</span>38.00</span></span></td><td class="wc_actions column-wc_actions hidden" data-colname="Actions"><p><a class="button wc-action-button wc-action-button-complete complete" href="http://hermes-wp.local/wp-admin/admin-ajax.php?action=woocommerce_mark_order_status&amp;status=completed&amp;order_id=47&amp;_wpnonce=9341383fc6" aria-label="Complete">Complete</a></p></td><td class="pathao column-pathao" data-colname="Pathao Courier"><span class="ptc-assign-area"><button class="ptc-open-modal-button" data-order-id="47">Send with Pathao</button></span></td><td class="pathao_status column-pathao_status" data-colname="Pathao Courier Status"><span id="47">  </span></td><td class="pathao_delivery_fee column-pathao_delivery_fee" data-colname="Pathao Courier Delivery Fee"><span id="ptc_delivery_fee-47">  </span></td>		</tr>
-        <tr id="post-46" class="iedit author-self level-0 post-46 type-shop_order status-wc-processing post-password-required hentry">
-            <th scope="row" class="check-column">			<input id="cb-select-46" type="checkbox" name="post[]" value="46">
-                <label for="cb-select-46">
-				<span class="screen-reader-text">
-				Select Order – February 15, 2024 @ 07:38 PM				</span>
-                </label>
-                <div class="locked-indicator">
-                    <span class="locked-indicator-icon" aria-hidden="true"></span>
-                    <span class="screen-reader-text">
-				“Order – February 15, 2024 @ 07:38 PM” is locked				</span>
-                </div>
-            </th><td class="order_number column-order_number has-row-actions column-primary" data-colname="Order"><a href="#" class="order-preview" data-order-id="46" title="Preview">Preview</a><a href="http://hermes-wp.local/wp-admin/post.php?post=46&amp;action=edit" class="order-view"><strong>#46 Sagar Dash</strong></a></td><td class="order_date column-order_date" data-colname="Date"><time datetime="2024-02-15T19:38:06+00:00" title="February 15, 2024 7:38 pm">Feb 15, 2024</time></td><td class="order_status column-order_status" data-colname="Status"><mark class="order-status status-processing tips"><span>Processing</span></mark></td><td class="billing_address column-billing_address hidden" data-colname="Billing">Sagar Dash, Pathao, 653, Gabtalla, Moghbazar, Dhaka, 1212<span class="description">via Cash on delivery</span></td><td class="shipping_address column-shipping_address hidden" data-colname="Ship to"><a target="_blank" href="https://maps.google.com/maps?&amp;q=653%2C%20Gabtalla%2C%20%2C%20Moghbazar%2C%20BD-13%2C%201212%2C%20BD&amp;z=16">Sagar Dash, Pathao, 653, Gabtalla, Moghbazar, Dhaka, 1212</a><span class="description">via Free shipping</span></td><td class="order_total column-order_total" data-colname="Total"><span class="tips"><span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">$</span>43.00</span></span></td><td class="wc_actions column-wc_actions hidden" data-colname="Actions"><p><a class="button wc-action-button wc-action-button-complete complete" href="http://hermes-wp.local/wp-admin/admin-ajax.php?action=woocommerce_mark_order_status&amp;status=completed&amp;order_id=46&amp;_wpnonce=9341383fc6" aria-label="Complete">Complete</a></p></td><td class="pathao column-pathao" data-colname="Pathao Courier"><pre> DS150224Y356TQ </pre></td><td class="pathao_status column-pathao_status" data-colname="Pathao Courier Status"><span id="46"> Pending </span></td><td class="pathao_delivery_fee column-pathao_delivery_fee" data-colname="Pathao Courier Delivery Fee"><span id="ptc_delivery_fee-46"> 145 </span></td>		</tr>
-        <tr id="post-33" class="iedit author-self level-0 post-33 type-shop_order status-wc-processing post-password-required hentry">
-            <th scope="row" class="check-column">			<input id="cb-select-33" type="checkbox" name="post[]" value="33">
-                <label for="cb-select-33">
-				<span class="screen-reader-text">
-				Select Order – September 17, 2023 @ 07:50 AM				</span>
-                </label>
-                <div class="locked-indicator">
-                    <span class="locked-indicator-icon" aria-hidden="true"></span>
-                    <span class="screen-reader-text">
-				“Order – September 17, 2023 @ 07:50 AM” is locked				</span>
-                </div>
-            </th><td class="order_number column-order_number has-row-actions column-primary" data-colname="Order"><a href="#" class="order-preview" data-order-id="33" title="Preview">Preview</a><a href="http://hermes-wp.local/wp-admin/post.php?post=33&amp;action=edit" class="order-view"><strong>#33 Sagar Dash</strong></a></td><td class="order_date column-order_date" data-colname="Date"><time datetime="2023-09-17T07:50:24+00:00" title="September 17, 2023 7:50 am">Sep 17, 2023</time></td><td class="order_status column-order_status" data-colname="Status"><mark class="order-status status-processing tips"><span>Processing</span></mark></td><td class="billing_address column-billing_address hidden" data-colname="Billing">Sagar Dash, Pathao, Dhaka, Dhaka, Dhaka, 1212<span class="description">via Cash on delivery</span></td><td class="shipping_address column-shipping_address hidden" data-colname="Ship to"><a target="_blank" href="https://maps.google.com/maps?&amp;q=Dhaka%2C%20%2C%20Dhaka%2C%20BD-13%2C%201212%2C%20BD&amp;z=16">Sagar Dash, Pathao, Dhaka, Dhaka, Dhaka, 1212</a><span class="description">via Free shipping</span></td><td class="order_total column-order_total" data-colname="Total"><span class="tips"><span class="woocommerce-Price-amount amount"><span class="woocommerce-Price-currencySymbol">$</span>100.00</span></span></td><td class="wc_actions column-wc_actions hidden" data-colname="Actions"><p><a class="button wc-action-button wc-action-button-complete complete" href="http://hermes-wp.local/wp-admin/admin-ajax.php?action=woocommerce_mark_order_status&amp;status=completed&amp;order_id=33&amp;_wpnonce=9341383fc6" aria-label="Complete">Complete</a></p></td><td class="pathao column-pathao" data-colname="Pathao Courier"><pre> DO211123BXPVDM </pre></td><td class="pathao_status column-pathao_status" data-colname="Pathao Courier Status"><span id="33"> Pending </span></td><td class="pathao_delivery_fee column-pathao_delivery_fee" data-colname="Pathao Courier Delivery Fee"><span id="ptc_delivery_fee-33"> 130 </span></td>		</tr>
+            <?php foreach ($orders as $order): ?>
+
+            <?php
+                $orderId = $order->get_id();
+                $customerName = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
+                $total = $order->get_total();
+                $consignmentId = $order->get_meta('ptc_consignment_id');
+                $currencyCode = $order->get_currency();
+                $currencySymbol = get_woocommerce_currency_symbol($currencyCode);
+                $date = date("F jS, Y", strtotime($order->get_date_created()));
+                $editLink = get_edit_post_link($orderId);
+            ?>
+
+            <tr id="post-33" class="author-self level-0 post-<?php echo $orderId ?> type-shop_order">
+                <th scope="row" class="check-column">
+                    <input id="cb-select-<?php echo $orderId ?>" type="checkbox" name="post[]" value="<?php echo $orderId ?>">
+                </th>
+
+                <?php foreach ($columns as $key => $column): ?>
+
+                    <?php switch ($key):
+                        case 'order_number': ?>
+                               <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                    <a href="<?php echo $editLink; ?>" class="order-view">
+                                        <strong>#<?php echo $orderId .'-'. $customerName;  ?></strong>
+                                    </a>
+                                </td>
+                        <?php break; ?>
+
+                        <?php case 'date': ?>
+                            <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                        <span>
+                                            <?php echo $date; ?>
+                                        </span>
+                            </td>
+                        <?php break; ?>
+
+                        <?php case 'status': ?>
+                            <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                        <span>
+                                           <?php echo $order->get_status(); ?>
+                                        </span>
+                            </td>
+                        <?php break; ?>
+
+                        <?php case 'total': ?>
+                            <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                        <span>
+                                            <?php echo $currencySymbol . $total; ?>
+                                        </span>
+                            </td>
+                        <?php break; ?>
+
+                        <?php case 'pathao': ?>
+
+                            <?php if (!$consignmentId): ?>
+                                <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                    <button class="ptc-open-modal-button" data-order-id="<?php echo $orderId ?>">
+                                        <?php echo __('Send with Pathao', 'textdomain') ?>
+                                    </button>
+                                </td>
+                            <?php else: ?>
+                                <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                    <span>
+                                        <a href="<?php echo get_ptc_merchant_panel_base_url() . '/courier/orders/'. $consignmentId ; ?>" class="order-view" target="_blank">
+                                             <?php echo $consignmentId; ?>
+                                        </a>
+                                    </span>
+                                </td>
+                            <?php endif; ?>
+
+                        <?php break; ?>
+
+                        <?php case 'pathao_status': ?>
+                            <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                <span>
+                                   <?php echo ucfirst(get_post_meta($orderId, 'ptc_status', true)); ?>
+                                </span>
+                            </td>
+                        <?php break; ?>
+
+
+                        <?php case 'pathao_delivery_fee': ?>
+                            <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+                                <span>
+                                    <?php echo get_post_meta($orderId, 'ptc_delivery_fee', true); ?>
+                                </span>
+                            </td>
+                        <?php break; ?>
+
+                        <?php default:
+                            $columnValue = ptc_order_list_column_values_callback("", $column, $orderId);
+                        ?>
+                            <td>
+                                <span><?php echo esc_html($columnValue); ?></span>
+                            </td>
+
+                    <?php endswitch; ?>
+
+                <?php endforeach; ?>
+
+                <?php endforeach; ?>
+            </tr>
         </tbody>
 
-        <tfoot>
-        <tr>
-            <td class="manage-column column-cb check-column"><input id="cb-select-all-2" type="checkbox">
-                <label for="cb-select-all-2"><span class="screen-reader-text">Select All</span></label></td><th scope="col" class="manage-column column-order_number column-primary sortable desc"><a href="http://hermes-wp.local/wp-admin/edit.php?post_type=shop_order&amp;orderby=ID&amp;order=asc"><span>Order</span><span class="sorting-indicators"><span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span></span> <span class="screen-reader-text">Sort ascending.</span></a></th><th scope="col" class="manage-column column-order_date sortable desc"><a href="http://hermes-wp.local/wp-admin/edit.php?post_type=shop_order&amp;orderby=date&amp;order=asc"><span>Date</span><span class="sorting-indicators"><span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span></span> <span class="screen-reader-text">Sort ascending.</span></a></th><th scope="col" class="manage-column column-order_status">Status</th><th scope="col" class="manage-column column-billing_address hidden">Billing</th><th scope="col" class="manage-column column-shipping_address hidden">Ship to</th><th scope="col" class="manage-column column-order_total sortable desc"><a href="http://hermes-wp.local/wp-admin/edit.php?post_type=shop_order&amp;orderby=order_total&amp;order=asc"><span>Total</span><span class="sorting-indicators"><span class="sorting-indicator asc" aria-hidden="true"></span><span class="sorting-indicator desc" aria-hidden="true"></span></span> <span class="screen-reader-text">Sort ascending.</span></a></th><th scope="col" class="manage-column column-wc_actions hidden">Actions</th><th scope="col" class="manage-column column-pathao">Pathao Courier</th><th scope="col" class="manage-column column-pathao_status">Pathao Courier Status</th><th scope="col" class="manage-column column-pathao_delivery_fee">Pathao Courier Delivery Fee</th>	</tr>
-        </tfoot>
-
     </table>
-    <div class="tablenav bottom">
 
-        <div class="alignleft actions">
+    <?php if (!$search || $lastPage): ?>
+
+    <div class="tablenav bottom">
+        <div class="tablenav-pages"><span class="displaying-num"><?php echo count($orders); ?>  items</span>
+            <span class="pagination-links">
+
+
+                <?php if ($page > 1): ?>
+                    <a class="first-page button " href="<?php echo $siteUrl . $firstPageLink ?>">
+                        <span class="screen-reader-text ">
+                            First page
+                        </span>
+                        <span aria-hidden="true">
+                            «
+                        </span>
+                    </a>
+
+                    <a class="prev-page button " href="<?php echo $siteUrl . $prevPageLink ?>">
+                        <span class="screen-reader-text">Previous page</span>
+                        <span aria-hidden="true">
+                            ‹
+                        </span>
+                    </a>
+
+
+                <?php else: ?>
+
+                    <span class="screen-reader-text disabled">
+                        First page
+                    </span>
+                    <span aria-hidden="true" class="tablenav-pages-navspan button disabled">
+                        «
+                    </span>
+
+                    <span class="screen-reader-text">Previous page</span>
+                    <span aria-hidden="true" class="tablenav-pages-navspan button disabled">
+                        ‹
+                    </span>
+
+                <?php endif; ?>
+
+
+
+
+                <span class="screen-reader-text">
+                    Current Page
+                </span>
+                <span id="table-paging" class="paging-input">
+                    <span class="tablenav-paging-text">
+                        <?php echo $page  ?> of
+                        <span class="total-pages">
+                            <?php echo $lastPage; ?>
+                        </span>
+                    </span>
+                </span>
+
+                <?php if ($page != $lastPage):  ?>
+
+                    <a class="next-page button" href="<?php echo $siteUrl . $nextPageLink ?>">
+                        <span class="screen-reader-text">Next page</span><span aria-hidden="true">
+                            ›
+                        </span>
+                    </a>
+                        <a class="last-page button" href="<?php echo $siteUrl . $lastPageLink ?>">
+                        <span class="screen-reader-text">
+                            Last page
+                        </span>
+                        <span aria-hidden="true">
+                            »
+                        </span>
+                    </a>
+
+                <?php  else: ?>
+
+                    <span aria-hidden="true" class="tablenav-pages-navspan button disabled" >
+                        ›
+                    </span>
+
+                    <span aria-hidden="true" class="tablenav-pages-navspan button disabled">
+                        »
+                    </span>
+
+                <?php endif; ?>
+
+
+            </span>
         </div>
-        <div class="tablenav-pages one-page"><span class="displaying-num">11 items</span>
-            <span class="pagination-links"><span class="tablenav-pages-navspan button disabled" aria-hidden="true">«</span>
-            <span class="tablenav-pages-navspan button disabled" aria-hidden="true">‹</span>
-            <span class="screen-reader-text">Current Page</span><span id="table-paging" class="paging-input"><span class="tablenav-paging-text">1 of <span class="total-pages">1</span></span></span>
-            <span class="tablenav-pages-navspan button disabled" aria-hidden="true">›</span>
-            <span class="tablenav-pages-navspan button disabled" aria-hidden="true">»</span></span></div>
-            <br class="clear">
+        <br class="clear">
     </div>
+
+    <?php endif; ?>
 
 </form>

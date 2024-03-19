@@ -2,6 +2,14 @@
 // Hook for adding admin columns and populating them
 add_action('init', 'initialize_admin_columns');
 
+add_filter('woocommerce_get_wp_query_args', function ($wp_query_args, $query_vars) {
+    if (isset($query_vars['meta_query'])) {
+        $meta_query = $wp_query_args['meta_query'] ?? [];
+        $wp_query_args['meta_query'] = array_merge($meta_query, $query_vars['meta_query']);
+    }
+    return $wp_query_args;
+}, 10, 2);
+
 function initialize_admin_columns()
 {
     add_filter('manage_edit-shop_order_columns', 'ptc_add_column_to_order_list');
@@ -47,18 +55,37 @@ function ptc_render_store_modal_button($post_id)
 {
     $consignmentId = get_post_meta($post_id, 'ptc_consignment_id', true);
 
-    $button = sprintf('<button class="ptc-open-modal-button" data-order-id="%s">Send with Pathao</button>', $post_id);
+    $button = sprintf('<button class="ptc-open-modal-button" data-order-id="%s">%s</button>', $post_id, __('Send with Pathao', 'textdomain'));
 
     if ($consignmentId) {
-        return sprintf('<pre> %s </pre>', $consignmentId);
+
+        return sprintf('<a href="%s" class="order-view" target="_blank">
+                                    %s
+                              </a>',
+            get_ptc_merchant_panel_base_url() . '/courier/orders/' . $consignmentId,
+            $consignmentId
+        );
     }
 
     return sprintf('<span class="ptc-assign-area">' . $button . '</span>', $post_id);
 }
 
-function render_form_group($label, $input)
+function render_form_group($label, $input, $formGroupClass = '')
 {
-    return sprintf('<div class="form-group"><label for="%1$s">%1$s:</label>%2$s</div>', $label, $input);
+
+    $id = strtolower(str_replace(' ', '-', $label));
+
+    return sprintf('
+        <div class="form-group %3$s">
+            <label for="%1$s">
+                %1$s:
+            </label>
+            <div class="form-input">
+                %2$s
+                <span id="%4$s" class="pt-field-error-message">error message</span>
+            </div>
+            
+        </div>', $label, $input, $formGroupClass, "{$id}-error");
 }
 
 
@@ -75,9 +102,9 @@ function ptc_render_store_modal_content()
     $addressForm = render_form_group('Address', '<textarea id="ptc_wc_shipping_address" name="address"></textarea>');
 
     $storeForm = render_form_group('Store', '<select id="store" required name="store"><option>Select store</option></select>');
-    $citiesForm = render_form_group('City', '<select id="city" required name="city"><option>Select city</option></select>');
-    $zoneForm = render_form_group('Zone', '<select id="zone" required name="zone"><option>Select zone</option></select>');
-    $areaForm = render_form_group('Area', '<select id="area" name="area"><option>Select area</option></select>');
+    $citiesForm = render_form_group('City', '<select id="city" required name="city"><option>Select city</option></select>', 'ptc-field-hub-selection');
+    $zoneForm = render_form_group('Zone', '<select id="zone" required name="zone"><option>Select zone</option></select>', 'ptc-field-hub-selection');
+    $areaForm = render_form_group('Area', '<select id="area" name="area"><option>Select area</option></select>', 'ptc-field-hub-selection');
 
     $deliveryType = render_form_group('Delivery Type', '
             <select id="ptc_wc_delivery_type" name="ptc_wc_delivery_type">

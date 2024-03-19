@@ -1,5 +1,4 @@
 
-
 jQuery(document).ready(function ($) {
 
 
@@ -14,13 +13,11 @@ jQuery(document).ready(function ($) {
     const orderItemsDom = $('#ptc_wc_order_items');
     const orderTotalItemsDom = $('#ptc_wc_total_order_items');
     const ptcModal = $('#ptc-custom-modal');
-
-    $('.column-pathao').on('click', function (e) {
-        e.preventDefault();
-    });
+    const hubSelection = $('.ptc-field-hub-selection');
 
     $('.ptc-open-modal-button').on('click', async function (e) {
         e.preventDefault();
+        hubSelection.hide();
         var orderID = $(this).data('order-id');
         $('#ptc_wc_order_number').val(orderID);  // Set the Order ID in a hidden field
         ptcModal.show();
@@ -111,11 +108,11 @@ jQuery(document).ready(function ($) {
             recipient_name: $('#ptc_wc_order_name').val(),
             recipient_phone: $('#ptc_wc_order_phone').val().replace('+88', ''),
             recipient_address: $('#ptc_wc_shipping_address').val(),
-            recipient_city: $('#city').val(),
-            recipient_zone: $('#zone').val(),
-            recipient_area: $('#area').val(),
+            recipient_city: +$('#city').val() || 0,
+            recipient_zone: +$('#zone').val() || 0,
+            recipient_area: +$('#area').val() || 0,
             amount_to_collect: $('#ptc_wc_order_price').val(),
-            store_id: $('#store').val(),
+            store_id: +$('#store').val() || 0,
             delivery_type: $('#ptc_wc_delivery_type').val(),
             item_type: $('#ptc_wc_item_type').val(),
             item_quantity: totalQuantityInput.val(),
@@ -132,10 +129,15 @@ jQuery(document).ready(function ($) {
                 order_data: orderData
             },
             success: function (response) {
-               let consignmentId = response.data.consignment_id;
-               let deliveryFee = response.data.delivery_fee;
+               let consignmentId = response.data?.consignment_id;
+               let deliveryFee = response.data?.delivery_fee;
 
-               $(`[data-order-id="${orderId}"].ptc-open-modal-button`).parent().html(`<pre> ${consignmentId} </pre>`);
+               $(`[data-order-id="${orderId}"].ptc-open-modal-button`).parent().html(`
+                    <a href="${ptcSettings?.merchantPanelBaseUrl}/courier/orders/${consignmentId}" class="order-view" target="_blank">
+                      ${consignmentId}
+                    </a>
+               `);
+
                $(`span#${orderId}`).html(`Pending`);
                $(`span#ptc_delivery_fee-${orderId}`).html(deliveryFee);
 
@@ -149,14 +151,58 @@ jQuery(document).ready(function ($) {
                     return;
                 }
 
-                alert(concatErrorMessages(response?.responseJSON?.data.errors))
+                if (
+                    'recipient_city' in response?.responseJSON?.data.errors ||
+                    'recipient_zone' in response?.responseJSON?.data.errors
+                ) {
+                    response.responseJSON.data.errors['recipient_address'] = 'Wrong address, please select the correct city and zone instead';
+
+                    hubSelection.show();
+                }
+
+                showErrorMessages(response?.responseJSON?.data.errors);
             }
         });
 
     });
 
-});
+    function showErrorMessages(errors) {
 
+        const responseFiledMappingWithFieldLabel = {
+            'recipient_name': 'name',
+            'recipient_address': 'address',
+            'recipient_city': 'city',
+            'recipient_zone': 'zone',
+            'recipient_area': 'area',
+            'recipient_phone': 'phone',
+            'amount_to_collect': 'collectable-amount',
+            'store_id': 'store',
+            'delivery_type': 'delivery-type',
+            'item_type': 'item-type',
+            'item_quantity': 'quantity',
+            'item_weight': 'weight',
+        };
+
+        if (typeof errors === 'string') {
+            alert(errors);
+            return;
+        }
+
+        for (const [key, value] of Object.entries(errors)) {
+
+            if (responseFiledMappingWithFieldLabel[key]) {
+                const errorField = $(`#${responseFiledMappingWithFieldLabel[key]}-error`);
+                if (!errorField) {
+                    continue;
+                }
+                errorField.show();
+                errorField.html(value);
+            }
+
+            $(`#${key}`).next().html(value);
+        }
+    }
+});
 
 jQuery(document).ready(function ($) {
 
@@ -225,16 +271,3 @@ jQuery(document).ready(function ($) {
     });
 });
 
-function concatErrorMessages(errors) {
-    let concatenatedErrors = '';
-
-    if (typeof errors === 'string') {
-        return errors;
-    }
-
-    for (const [key, value] of Object.entries(errors)) {
-        concatenatedErrors += `${value} \n`;
-    }
-
-    return concatenatedErrors.trim(); // Trim leading and trailing whitespaces
-}
