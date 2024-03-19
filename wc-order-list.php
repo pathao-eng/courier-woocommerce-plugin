@@ -97,7 +97,7 @@ function ptc_render_store_modal_content()
 
     $orderNumber = render_form_group('Order Number', '<input type="text" id="ptc_wc_order_number" name="order_number" value="" readonly>');
     $priceForm = render_form_group('Collectable Amount', '<input type="text" id="ptc_wc_order_price" name="ptc_wc_order_price">');
-    $weightForm = render_form_group('Weight', '<input type="text" id="ptc_wc_order_weight" name="ptc_wc_order_weight" value="1">');
+    $weightForm = render_form_group('Weight', '<input type="text" id="ptc_wc_order_weight" name="ptc_wc_order_weight" value="0.5">');
     $quantityForm = render_form_group('Quantity', '<input type="number" disabled id="ptc_wc_order_quantity" name="ptc_wc_order_quantity">');
     $addressForm = render_form_group('Address', '<textarea id="ptc_wc_shipping_address" name="address"></textarea>');
 
