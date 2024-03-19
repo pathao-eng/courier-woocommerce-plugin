@@ -65,7 +65,7 @@ jQuery(document).ready(function ($) {
                 $('#ptc_wc_order_payment_status').html('unpaid');
             }
 
-            totalWeightInput.val(orderData.total_weight ? orderData.total_weight : 1);
+            totalWeightInput.val(orderData.total_weight ? orderData.total_weight : 0.5);
             totalQuantityInput.val(orderData.total_items);
 
             let orderItems = '';
