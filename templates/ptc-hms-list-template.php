@@ -35,6 +35,14 @@ foreach ($orderGroupByCounts as $status => $count) {
     $totalOrders += $count;
 }
 
+if (!$totalOrders) { // if still no orders found then get it from database
+    $totalOrders = $wpdb->get_var(/** @lang text */ "
+        SELECT COUNT(DISTINCT ID)
+        FROM {$wpdb->prefix}posts 
+        WHERE post_type = 'shop_order'
+    ");
+}
+
 $lastPage = ceil( $totalOrders / $limit );
 
 $siteUrl = get_site_url();
@@ -202,7 +210,7 @@ $search = $_GET['search'] ?? '';
                 $orderId = $order->get_id();
                 $customerName = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
                 $total = $order->get_total();
-                $consignmentId = $order->get_meta('ptc_consignment_id');
+                $consignmentId = get_post_meta($orderId, 'ptc_consignment_id', true); // because its cache by WordPress its wont create any query issue (https://wordpress.stackexchange.com/a/282538)
                 $currencyCode = $order->get_currency();
                 $currencySymbol = get_woocommerce_currency_symbol($currencyCode);
                 $date = date("F jS, Y", strtotime($order->get_date_created()));
@@ -271,7 +279,7 @@ $search = $_GET['search'] ?? '';
 
                         <?php case 'pathao_status': ?>
                             <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                                <span>
+                                <span id="<?php echo $orderId ?>">
                                    <?php echo ucfirst(get_post_meta($orderId, 'ptc_status', true)); ?>
                                 </span>
                             </td>
@@ -280,7 +288,7 @@ $search = $_GET['search'] ?? '';
 
                         <?php case 'pathao_delivery_fee': ?>
                             <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
-                                <span>
+                                <span id="ptc_delivery_fee-<?php echo $orderId; ?>">
                                     <?php echo get_post_meta($orderId, 'ptc_delivery_fee', true); ?>
                                 </span>
                             </td>
