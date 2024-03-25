@@ -75,5 +75,15 @@ To use follow these steps:
 ![img_8.png](screenshots%2Fimg_8.png)
 
 
-## License
-This plugin is released under the [GPL V3](https://github.com/pathao-eng/courier-woocommerce-plugin/blob/main/license.txt).
+## Support
+
+If you have any questions or need help, please contact us at 
+
+- Email: [support@pathao.com](mailto:support@pathao.com)
+- Phone: [+8809610003030](tel:+8809610003030)
+
+## Note
+If you are facing any issues with latest plugin version, you can use the previous version of the plugin from [here](https://github.com/pathao-eng/courier-woocommerce-plugin/releases/tag/1.0.4).
+
+> **License:** This plugin is released under the [GPL V3](https://github.com/pathao-eng/courier-woocommerce-plugin/blob/main/license.txt).
+
