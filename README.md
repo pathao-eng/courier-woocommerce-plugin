@@ -14,6 +14,19 @@ Whether you need seamless package tracking or a user-friendly way to manage deli
 - Webhook Implementations
 - Realtime order status updates
 
+## Features v.1.1.0
+- Added order creation without city/zone/area.
+- Separate order list template
+- New template for the "All Orders" page and Added a general settings page.
+- Added date and limit filter on the template page.
+## Bug Fixes
+- Fixed CSS style for modal.
+- Changed in validation UI response.
+- Changed default weight value
+- Default weight 1kg to 0.5kg
+- Refactored the codes.
+- Refactored all endpoints.
+
 ## Requirements
 - Requires at least: 6.0
 - Tested up to: 6.4
