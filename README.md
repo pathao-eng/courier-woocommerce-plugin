@@ -14,19 +14,6 @@ Whether you need seamless package tracking or a user-friendly way to manage deli
 - Webhook Implementations
 - Realtime order status updates
 
-## Features v.1.1.0
-- Added order creation without city/zone/area.
-- Separate order list template
-- New template for the "All Orders" page and Added a general settings page.
-- Added date and limit filter on the template page.
-## Bug Fixes
-- Fixed CSS style for modal.
-- Changed in validation UI response.
-- Changed default weight value
-- Default weight 1kg to 0.5kg
-- Refactored the codes.
-- Refactored all endpoints.
-
 ## Requirements
 - Requires at least: 6.0
 - Tested up to: 6.4
@@ -82,21 +69,43 @@ To use follow these steps:
 
 ![img_7.png](screenshots%2Fimg_7.png)
 
-5. Click on the button 'Send with Pathao' to send the order to the Pathao Merchant Panel.
-6. You will see a modal with the order details. Fill up the details and click on the button 'Send to Pathao'.
+5. Click on the 'Send with Pathao' button to send the order to the Pathao Merchant Panel.
+6. You will see a modal with the order details. Fill in the details and click on the 'Send to Pathao' button.
 
 ![img_8.png](screenshots%2Fimg_8.png)
 
+## Changelog
+- v.1.1.2
+    - Bug Fixes
+        - Filter issue fixed.
+        - Refactored the order list template.
+        - Add a clear filter button.
+- v.1.1.1
+    - Bug Fixes
+        - Installation issue fixed.
+- v.1.1.0
+  - Features 
+    - Added order creation without city/zone/area.
+    - Separate order list template
+    - New template for the "All Orders" page and Added a general settings page.
+    - Added date and limit filter on the template page.
+  - Bug Fixes
+    - Fixed CSS style for modal.
+    - Changed in validation UI response.
+    - Changed default weight value
+    - Default weight 1kg to 0.5kg
+    - Refactored the codes.
+    - Refactored all endpoints.
+
+## Note
+If you are facing any issues with the latest plugin version, you can use the previous version of the plugin from [here](https://github.com/pathao-eng/courier-woocommerce-plugin/releases/tag/1.0.4).
+
+## License
+This plugin is released under the [GPL V3](https://github.com/pathao-eng/courier-woocommerce-plugin/blob/main/license.txt).
 
 ## Support
 
-If you have any questions or need help, please contact us at 
+If you have any questions or need help, please get in touch with us at
 
 - Email: [support@pathao.com](mailto:support@pathao.com)
 - Phone: [+8809610003030](tel:+8809610003030)
-
-## Note
-If you are facing any issues with latest plugin version, you can use the previous version of the plugin from [here](https://github.com/pathao-eng/courier-woocommerce-plugin/releases/tag/1.0.4).
-
-> **License:** This plugin is released under the [GPL V3](https://github.com/pathao-eng/courier-woocommerce-plugin/blob/main/license.txt).
-
