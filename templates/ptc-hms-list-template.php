@@ -7,7 +7,7 @@ $maximumLimit = 100;
 
 $limit = isset($_GET['limit']) ? absint($_GET['limit']) : $minimumLimit;
 $page = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1; // Current page number
-$search = isset( $_GET['search'] ) ?  esc_attr($_GET['search']) : '';
+$search = esc_sql(sanitize_text_field(isset( $_GET['search'] ) ?  esc_attr($_GET['search']) : ''));
 $fromDate = !empty($_GET['from-date']) ? date('Y-m-d H:i:s',  strtotime(esc_attr($_GET['from-date']))) : '';
 $toDate = !empty($_GET['to-date']) ? date('Y-m-d H:i:s',  strtotime(esc_attr($_GET['to-date']))) : '';
 $ordersPageType = isset($_GET['orders_page_type']) ? esc_attr($_GET['orders_page_type']) : 'all';
@@ -38,44 +38,24 @@ $columns = ptc_order_list_columns();
 $ids = [];
 
 if ($search) {
-    $ids =  array_merge($ids, $wpdb->get_col(/** @lang text */ "
-            SELECT DISTINCT post_id
-            FROM {$wpdb->prefix}postmeta 
-            WHERE (meta_key = 'billing_first_name' AND meta_value LIKE '%{$search}%') OR
-                    (meta_key = 'billing_last_name' AND meta_value LIKE '%{$search}%') OR
-                    (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%{$search}%') OR
-                    (meta_key = 'ptc_status' AND meta_value LIKE '%{$search}%')
-        "));
 
-    $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
-                SELECT DISTINCT id
-                FROM {$wpdb->prefix}wc_orders
-                WHERE status LIKE '%{$search}%'
-            "));
+    $ids = array_merge($ids, ptc_get_post_ids_by_billing_first_name($search));
 
-    $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
-                SELECT DISTINCT ID
-                FROM {$wpdb->prefix}posts 
-                WHERE post_status LIKE '%{$search}%'
-            "));
+    $ids = array_merge($ids, ptc_get_post_ids_by_billing_last_name($search));
+
+    $ids = array_merge($ids, ptc_get_post_ids_by_search_from_post_meta($search));
+
+    $ids = array_merge($ids, ptc_get_post_ids_by_status($search));
 }
 
 if ($ordersPageType == 'pathao') {
-    $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
-            SELECT DISTINCT post_id
-            FROM {$wpdb->prefix}postmeta 
-            WHERE meta_key = 'ptc_consignment_id'
-        "));
+    $ids = ptc_get_all_pathao_orders();
 }
 
 $allOrdersPageLink = add_query_arg('orders_page_type', 'all');
 $pathaoOrdersPageLink = add_query_arg('orders_page_type', 'pathao');
 
-$pathaoOrdersCount = $wpdb->get_var(/** @lang text */ "
-        SELECT COUNT(DISTINCT post_id)
-        FROM {$wpdb->prefix}postmeta 
-        WHERE meta_key = 'ptc_consignment_id'
-    ");
+$pathaoOrdersCount = ptc_get_all_pathao_orders_count();
 
 $args = [
     'limit' => $limit,
@@ -114,7 +94,7 @@ $query = wc_get_orders($args);
 
 $orders = $query->orders;
 
-$totalOrders = $query->total;
+$totalOrders = ptc_wc_get_orders_count();
 $lastPage = $query->max_num_pages;
 $siteUrl = get_site_url();
 $nextPageLink = add_query_arg('paged', min($page + 1, $lastPage));
@@ -207,7 +187,7 @@ $search = $_GET['search'] ?? '';
                 $currencyCode = $order->get_currency();
                 $currencySymbol = get_woocommerce_currency_symbol($currencyCode);
                 $date = date("F jS, Y", strtotime($order->get_date_created()));
-                $editLink = get_edit_post_link($orderId);
+                $editLink = $order->get_edit_order_url();
             ?>
 
             <tr id="post-33" class="author-self level-0 post-<?php echo $orderId ?> type-shop_order">

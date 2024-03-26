@@ -27,6 +27,7 @@ require_once PTC_PLUGIN_DIR.'/settings-page.php';
 require_once PTC_PLUGIN_DIR.'/pathao-bridge.php';
 require_once PTC_PLUGIN_DIR.'/plugin-api.php';
 require_once PTC_PLUGIN_DIR.'/wc-order-list.php';
+require_once PTC_PLUGIN_DIR.'/db-queries.php';
 
 // Enqueue styles and scripts
 add_action('admin_enqueue_scripts', 'enqueue_custom_admin_script');
