@@ -107,7 +107,7 @@ function ptc_get_all_pathao_orders_count()
 /**
  * Get total orders count
  *
- * @return array
+ * @return int
  */
 function ptc_wc_get_orders_count()
 {
