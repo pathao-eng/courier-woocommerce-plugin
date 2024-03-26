@@ -14,7 +14,7 @@ $ordersPageType = isset($_GET['orders_page_type']) ? esc_attr($_GET['orders_page
 $resetFilter = isset($_GET['filter_action_reset']);
 
 if ($resetFilter) {
-    wp_redirect(admin_url('admin.php?page=pt_hms_orders'));
+    wp_redirect(admin_url('admin.php?page='. PTC_PLUGIN_PAGE_TYPE));
 }
 
 if (!$fromDate) {
