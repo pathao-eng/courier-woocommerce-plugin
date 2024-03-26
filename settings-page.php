@@ -171,7 +171,7 @@ function pt_hms_orders_page() {
 // Callback function to display the content of the submenu page
 function pt_hms_pathao_courier_page_callback() {
     echo '<div class="wrap">';
-    echo '<h2>My Custom Submenu Page</h2>';
+    echo '<h2>Pathao Courier Order Page</h2>';
 
     ob_start();
     include_once PTC_PLUGIN_TEMPLATE_DIR . 'ptc-hms-list-template.php';
