@@ -11,6 +11,11 @@ $search = isset( $_GET['search'] ) ?  esc_attr($_GET['search']) : '';
 $fromDate = !empty($_GET['from-date']) ? date('Y-m-d H:i:s',  strtotime(esc_attr($_GET['from-date']))) : '';
 $toDate = !empty($_GET['to-date']) ? date('Y-m-d H:i:s',  strtotime(esc_attr($_GET['to-date']))) : '';
 $ordersPageType = isset($_GET['orders_page_type']) ? esc_attr($_GET['orders_page_type']) : 'all';
+$resetFilter = isset($_GET['filter_action_reset']);
+
+if ($resetFilter) {
+    wp_redirect(admin_url('admin.php?page=pt_hms_orders'));
+}
 
 if (!$fromDate) {
     $fromDate = '';
@@ -28,29 +33,6 @@ $offset = ( $page - 1 ) * $limit;
 
 $wcOrdersPageType = 'shop_order';
 
-$orderGroupByCounts = !$search ? (array)wp_count_posts($wcOrdersPageType) : [];
-$totalOrders = 0;
-
-foreach ($orderGroupByCounts as $status => $count) {
-    $totalOrders += $count;
-}
-
-if (!$totalOrders) { // if still no orders found then get it from database
-    $totalOrders = $wpdb->get_var(/** @lang text */ "
-        SELECT COUNT(DISTINCT ID)
-        FROM {$wpdb->prefix}posts 
-        WHERE post_type = 'shop_order'
-    ");
-}
-
-$lastPage = ceil( $totalOrders / $limit );
-
-$siteUrl = get_site_url();
-$nextPageLink = add_query_arg('paged', min($page + 1, $lastPage));
-$lastPageLink = add_query_arg('paged', $lastPage);
-$prevPageLink = add_query_arg('paged', max($page - 1, 1));
-$firstPageLink = add_query_arg('paged', 1);
-
 $columns = ptc_order_list_columns();
 
 $ids = [];
@@ -59,22 +41,22 @@ if ($search) {
     $ids =  array_merge($ids, $wpdb->get_col(/** @lang text */ "
             SELECT DISTINCT post_id
             FROM {$wpdb->prefix}postmeta 
-            WHERE (meta_key = 'billing_first_name' AND meta_value LIKE '%$search%') OR
-                    (meta_key = 'billing_last_name' AND meta_value LIKE '%$search%') OR
-                    (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%$search%') OR
-                    (meta_key = 'ptc_status' AND meta_value LIKE '%$search%')
+            WHERE (meta_key = 'billing_first_name' AND meta_value LIKE '%{$search}%') OR
+                    (meta_key = 'billing_last_name' AND meta_value LIKE '%{$search}%') OR
+                    (meta_key = 'ptc_consignment_id' AND meta_value LIKE '%{$search}%') OR
+                    (meta_key = 'ptc_status' AND meta_value LIKE '%{$search}%')
         "));
 
     $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
                 SELECT DISTINCT id
                 FROM {$wpdb->prefix}wc_orders
-                WHERE status LIKE '%$search%'
+                WHERE status LIKE '%{$search}%'
             "));
 
     $ids = array_merge($ids, $wpdb->get_col(/** @lang text */ "
                 SELECT DISTINCT ID
                 FROM {$wpdb->prefix}posts 
-                WHERE post_status LIKE '%$search%'
+                WHERE post_status LIKE '%{$search}%'
             "));
 }
 
@@ -96,9 +78,10 @@ $pathaoOrdersCount = $wpdb->get_var(/** @lang text */ "
     ");
 
 $args = [
-    'limit' => $search ? -1 : $limit,
+    'limit' => $limit,
     'offset' => $offset,
     'type' => $wcOrdersPageType,
+    'paginate' => true,
 ];
 
 if ((int)($search)) { // if search is a number, then its order id
@@ -127,11 +110,20 @@ if ($toDate) {
     ];
 }
 
-$orders = wc_get_orders($args);
+$query = wc_get_orders($args);
+
+$orders = $query->orders;
+
+$totalOrders = $query->total;
+$lastPage = $query->max_num_pages;
+$siteUrl = get_site_url();
+$nextPageLink = add_query_arg('paged', min($page + 1, $lastPage));
+$lastPageLink = add_query_arg('paged', $lastPage);
+$prevPageLink = add_query_arg('paged', max($page - 1, 1));
+$firstPageLink = add_query_arg('paged', 1);
 
 $search = $_GET['search'] ?? '';
 ?>
-
 
 <ul class="subsubsub">
     <li class="all">
@@ -166,6 +158,7 @@ $search = $_GET['search'] ?? '';
             <label for="limit" class="limit">Number of items per page</label>
             <input type="number" id="limit" name="limit" value="<?php echo $limit; ?>" class="ptc-limit" min="<?php echo $minimumLimit; ?>" max="<?php echo $maximumLimit; ?>">
             <input type="submit" name="filter_action" id="post-query-submit" class="button" value="Filter">
+            <input type="submit" name="filter_action_reset" id="post-query-submit" class="button" value="Clear Filter">
         </div>
         <div class="tablenav-pages one-page">
             <span class="displaying-num"><?php echo count($orders); ?> items</span>
