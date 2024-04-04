@@ -166,6 +166,34 @@ function pt_hms_create_new_order($order_data)
     $api_url = get_base_url() . '/aladdin/api/v1/orders';
     $token = pt_hms_get_token();
 
+    $payload = [
+        'store_id' => sanitize_text_field($order_data['store_id']),
+        'merchant_order_id' => sanitize_text_field($order_data['merchant_order_id']),
+        'recipient_name' => sanitize_text_field($order_data['recipient_name']),
+        'recipient_phone' => sanitize_text_field($order_data['recipient_phone']),
+        'recipient_address' => sanitize_text_field($order_data['recipient_address']),
+        'delivery_type' => sanitize_text_field($order_data['delivery_type']),
+        'item_type' => sanitize_text_field($order_data['item_type']),
+        'special_instruction' => sanitize_text_field($order_data['special_instruction']),
+        'item_quantity' => sanitize_text_field($order_data['item_quantity']),
+        'item_weight' => sanitize_text_field($order_data['item_weight']),
+        'amount_to_collect' => round(sanitize_text_field($order_data['amount_to_collect'])),
+        'item_description' => sanitize_text_field($order_data['item_description'])
+    ];
+
+
+    if (!empty($order_data['recipient_city'])) {
+        $payload['recipient_city'] = (int)sanitize_text_field($order_data['recipient_city']);
+    }
+
+    if (!empty($order_data['recipient_zone'])) {
+        $payload['recipient_zone'] = (int)sanitize_text_field($order_data['recipient_zone']);
+    }
+
+    if (!empty($order_data['recipient_area'])) {
+        $payload['recipient_area'] = (int)sanitize_text_field($order_data['recipient_area']);
+    }
+
     $args = array(
         'headers' => array(
             'Authorization' => 'Bearer ' . $token,
@@ -173,25 +201,7 @@ function pt_hms_create_new_order($order_data)
             'Accept' => 'application/json',
             'source' => 'woocommerce'
         ),
-        'body' => json_encode(array_filter([
-            'store_id' => sanitize_text_field($order_data['store_id']),
-            'merchant_order_id' => sanitize_text_field($order_data['merchant_order_id']),
-            'recipient_name' => sanitize_text_field($order_data['recipient_name']),
-            'recipient_phone' => sanitize_text_field($order_data['recipient_phone']),
-            'recipient_address' => sanitize_text_field($order_data['recipient_address']),
-            'recipient_city' => (int)sanitize_text_field($order_data['recipient_city']),
-            'recipient_zone' => (int)sanitize_text_field($order_data['recipient_zone']),
-            'recipient_area' => (int)sanitize_text_field($order_data['recipient_area']),
-            'delivery_type' => sanitize_text_field($order_data['delivery_type']),
-            'item_type' => sanitize_text_field($order_data['item_type']),
-            'special_instruction' => sanitize_text_field($order_data['special_instruction']),
-            'item_quantity' => sanitize_text_field($order_data['item_quantity']),
-            'item_weight' => sanitize_text_field($order_data['item_weight']),
-            'amount_to_collect' => round(sanitize_text_field($order_data['amount_to_collect'])),
-            'item_description' => sanitize_text_field($order_data['item_description'])
-        ], function ($value) { // remove empty values
-            return !empty($value);
-        }))
+        'body' => json_encode($payload)
     );
 
     $response = wp_remote_post($api_url, $args);
