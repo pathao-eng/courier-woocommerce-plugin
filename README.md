@@ -75,6 +75,13 @@ To use follow these steps:
 ![img_8.png](screenshots%2Fimg_8.png)
 
 ## Changelog
+- v.1.1.3
+   - Bug Fixes
+      - Separate all queries
+      - Fis sanitization issues
+      - Fix edit URL issues
+      - Fix all order count issues
+      - Refactor code 
 - v.1.1.2
     - Bug Fixes
         - Filter issue fixed.
