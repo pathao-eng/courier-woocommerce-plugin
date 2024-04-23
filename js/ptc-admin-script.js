@@ -112,6 +112,7 @@ jQuery(document).ready(function ($) {
             recipient_zone: +$('#zone').val() || 0,
             recipient_area: +$('#area').val() || 0,
             item_description: $('#ptc_wc_item_description').val() || '',
+            special_instruction: $('#ptc_wc_special_instruction').val() || '',
             amount_to_collect: $('#ptc_wc_order_price').val(),
             store_id: +$('#store').val() || 0,
             delivery_type: $('#ptc_wc_delivery_type').val(),
