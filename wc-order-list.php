@@ -124,6 +124,7 @@ function ptc_render_store_modal_content()
     ');
 
     $itemDescription = render_form_group('Note', '<textarea id="ptc_wc_item_description" name="item_description"></textarea>');
+    $specialInstruction = render_form_group('Special Instruction', '<textarea id="ptc_wc_special_instruction" name="special_instruction"></textarea>');
 
 
     echo
@@ -177,6 +178,7 @@ function ptc_render_store_modal_content()
               ' . $deliveryType . '
               ' . $itemType . '
               ' . $itemDescription . '
+              ' . $specialInstruction . '
            </div>
           </div>
           <button id="ptc-submit-button" type="button">Send with Pathao Courier</button>
