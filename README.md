@@ -75,6 +75,13 @@ To use follow these steps:
 ![img_8.png](screenshots%2Fimg_8.png)
 
 ## Changelog
+- v.1.1.4
+   - Bug Fixes
+      - add a special instruction field in the Create Order page
+- v.1.1.3
+   - Bug Fixes
+      - Fix the amount_to_collect 0 issue
+      - Add new field Note
 - v.1.1.3
    - Bug Fixes
       - Separate all queries
