@@ -171,6 +171,7 @@ function pt_hms_create_new_order($order_data)
         'merchant_order_id' => sanitize_text_field($order_data['merchant_order_id']),
         'recipient_name' => sanitize_text_field($order_data['recipient_name']),
         'recipient_phone' => sanitize_text_field($order_data['recipient_phone']),
+        'recipient_secondary_phone' => sanitize_text_field($order_data['recipient_secondary_phone']),
         'recipient_address' => sanitize_text_field($order_data['recipient_address']),
         'delivery_type' => sanitize_text_field($order_data['delivery_type']),
         'item_type' => sanitize_text_field($order_data['item_type']),
