@@ -107,6 +107,7 @@ jQuery(document).ready(function ($) {
             merchant_order_id: orderId,
             recipient_name: $('#ptc_wc_order_name').val(),
             recipient_phone: $('#ptc_wc_order_phone').val().replace('+88', ''),
+            recipient_secondary_phone: $('#ptc_wc_order_secondary_phone').val().replace('+88', ''),
             recipient_address: $('#ptc_wc_shipping_address').val(),
             recipient_city: +$('#city').val() || 0,
             recipient_zone: +$('#zone').val() || 0,
