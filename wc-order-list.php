@@ -94,6 +94,7 @@ function ptc_render_store_modal_content()
 
     $nameForm = render_form_group('Name', '<input type="text" id="ptc_wc_order_name" name="name" value="">');
     $phoneForm = render_form_group('Phone', '<input type="text" id="ptc_wc_order_phone" name="phone" value="">');
+    $SecondaryPhoneForm = render_form_group('Secondary Phone', '<input type="text" id="ptc_wc_order_secondary_phone" name="secondary_phone" value="">');
 
     $orderNumber = render_form_group('Order Number', '<input type="text" id="ptc_wc_order_number" name="order_number" value="" readonly>');
     $priceForm = render_form_group('Collectable Amount', '<input type="text" id="ptc_wc_order_price" name="ptc_wc_order_price">');
@@ -151,6 +152,7 @@ function ptc_render_store_modal_content()
             <div class="row">
                 ' . $nameForm . '
                 ' . $phoneForm . '
+                ' . $SecondaryPhoneForm . '
             </div>
             <div class="row">
               <?= render_stores_dropdown(); ?>
