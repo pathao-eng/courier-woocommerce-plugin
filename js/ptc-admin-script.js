@@ -1,8 +1,6 @@
-
 jQuery(document).ready(function ($) {
 
-
-    var orderData = {}
+    let orderData = {};
     const nameInput = $('#ptc_wc_order_name');
     const phoneInput = $('#ptc_wc_order_phone');
     const shippingAddressInput = $('#ptc_wc_shipping_address');
@@ -14,6 +12,15 @@ jQuery(document).ready(function ($) {
     const orderTotalItemsDom = $('#ptc_wc_total_order_items');
     const ptcModal = $('#ptc-custom-modal');
     const hubSelection = $('.ptc-field-hub-selection');
+    const secondaryPhoneInput = $('#ptc_wc_order_secondary_phone');
+    const cityInput = $('#city');
+    const zoneInput = $('#zone');
+    const areaInput = $('#area');
+    const itemDescriptionInput = $('#ptc_wc_item_description');
+    const specialInstructionInput = $('#ptc_wc_special_instruction');
+    const storeIdInput = $('#store');
+    const deliveryTypeInput = $('#ptc_wc_delivery_type');
+    const itemTypeInput = $('#ptc_wc_item_type');
 
     $('.ptc-open-modal-button').on('click', async function (e) {
         e.preventDefault();
@@ -22,6 +29,7 @@ jQuery(document).ready(function ($) {
         $('#ptc_wc_order_number').val(orderID);  // Set the Order ID in a hidden field
         ptcModal.show();
         clearModalData();
+        clearErrorMessages()
         await getOrderInfoAndPopulateModalData(orderID);
     });
 
@@ -98,6 +106,15 @@ jQuery(document).ready(function ($) {
         totalPriceInput.val('');
         totalWeightInput.val('');
         totalQuantityInput.val('');
+        secondaryPhoneInput.val('');
+        cityInput.val('');
+        zoneInput.val('');
+        areaInput.val('');
+        itemDescriptionInput.val('');
+        specialInstructionInput.val('');
+        storeIdInput.val('');
+        deliveryTypeInput.val('48');
+        itemTypeInput.val('2');
     }
 
     $('#ptc-submit-button').on('click', function (event) {
@@ -105,19 +122,19 @@ jQuery(document).ready(function ($) {
         let orderId = $('#ptc_wc_order_number').val();
         const orderData = {
             merchant_order_id: orderId,
-            recipient_name: $('#ptc_wc_order_name').val(),
-            recipient_phone: $('#ptc_wc_order_phone').val().replace('+88', ''),
-            recipient_secondary_phone: $('#ptc_wc_order_secondary_phone').val().replace('+88', ''),
-            recipient_address: $('#ptc_wc_shipping_address').val(),
-            recipient_city: +$('#city').val() || 0,
-            recipient_zone: +$('#zone').val() || 0,
-            recipient_area: +$('#area').val() || 0,
-            item_description: $('#ptc_wc_item_description').val() || '',
-            special_instruction: $('#ptc_wc_special_instruction').val() || '',
-            amount_to_collect: $('#ptc_wc_order_price').val(),
-            store_id: +$('#store').val() || 0,
-            delivery_type: $('#ptc_wc_delivery_type').val(),
-            item_type: $('#ptc_wc_item_type').val(),
+            recipient_name: nameInput.val(),
+            recipient_phone: phoneInput.val().replace('+88', ''),
+            recipient_secondary_phone: secondaryPhoneInput.val().replace('+88', ''),
+            recipient_address: shippingAddressInput.val(),
+            recipient_city: +cityInput.val() || 0,
+            recipient_zone: +zoneInput.val() || 0,
+            recipient_area: +areaInput.val() || 0,
+            item_description: itemDescriptionInput.val() || '',
+            special_instruction: specialInstructionInput.val() || '',
+            amount_to_collect: totalPriceInput.val(),
+            store_id: +storeIdInput.val() || 0,
+            delivery_type: deliveryTypeInput.val(),
+            item_type: itemTypeInput.val(),
             item_quantity: totalQuantityInput.val(),
             item_weight: totalWeightInput.val(),
         };
@@ -132,20 +149,20 @@ jQuery(document).ready(function ($) {
                 order_data: orderData
             },
             success: function (response) {
-               let consignmentId = response.data?.consignment_id;
-               let deliveryFee = response.data?.delivery_fee;
+                let consignmentId = response.data?.consignment_id;
+                let deliveryFee = response.data?.delivery_fee;
 
-               $(`[data-order-id="${orderId}"].ptc-open-modal-button`).parent().html(`
+                $(`[data-order-id="${orderId}"].ptc-open-modal-button`).parent().html(`
                     <a href="${ptcSettings?.merchantPanelBaseUrl}/courier/orders/${consignmentId}" class="order-view" target="_blank">
                       ${consignmentId}
                     </a>
                `);
 
-               $(`span#${orderId}`).html(`Pending`);
-               $(`span#ptc_delivery_fee-${orderId}`).html(deliveryFee);
+                $(`span#${orderId}`).html(`Pending`);
+                $(`span#ptc_delivery_fee-${orderId}`).html(deliveryFee);
 
-               ptcModal.hide();
-               
+                ptcModal.hide();
+
             },
             error: function (response) {
 
@@ -203,6 +220,38 @@ jQuery(document).ready(function ($) {
             }
 
             $(`#${key}`).next().html(value);
+        }
+    }
+
+    function clearErrorMessages() {
+
+        const responseFiledMappingWithFieldLabel = {
+            'recipient_name': 'name',
+            'recipient_address': 'address',
+            'recipient_city': 'city',
+            'recipient_zone': 'zone',
+            'recipient_area': 'area',
+            'recipient_phone': 'phone',
+            'amount_to_collect': 'collectable-amount',
+            'store_id': 'store',
+            'delivery_type': 'delivery-type',
+            'item_type': 'item-type',
+            'item_quantity': 'quantity',
+            'item_weight': 'weight',
+        };
+
+        for (const [key, value] of Object.entries(responseFiledMappingWithFieldLabel)) {
+
+            const errorField = $(`#${responseFiledMappingWithFieldLabel[key]}-error`);
+
+            if (!errorField) {
+                continue;
+            }
+
+            errorField.hide();
+            errorField.html('');
+
+            $(`#${key}`).next().html('');
         }
     }
 });
