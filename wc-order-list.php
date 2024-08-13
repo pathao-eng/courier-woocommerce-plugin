@@ -119,7 +119,6 @@ function ptc_render_store_modal_content()
             <select id="ptc_wc_item_type" name="ptc_wc_item_type">
                  <option value="2" selected>Parcel</option>
                  <option value="1">Document</option>
-                 <option value="4">Book</option>
                  <option value="3">Fragile</option>
             </select>
     ');
