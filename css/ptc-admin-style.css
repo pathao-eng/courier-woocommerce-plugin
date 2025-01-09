@@ -70,29 +70,28 @@
     background-color: #45a049;
 }
 
-
-.form-group {
+#ptc-custom-modal .form-group {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.form-group label {
+#ptc-custom-modal .form-group label {
     margin-right: 10px;
 }
 
-.form-group .form-input {
+#ptc-custom-modal .form-group .form-input {
     display: flex;
     flex-direction: column;
     width: 100%;
 }
 
-.row {
+#ptc-custom-modal  .row {
     display: flex;
     justify-content: space-between;
 }
 
-.form-group {
+#ptc-custom-modal .form-group {
     flex: 1;
     margin-right: 10px;
 }

@@ -158,7 +158,7 @@ $search = $_GET['search'] ?? '';
         <br class="clear">
     </div>
     <h2 class="screen-reader-text">Orders list</h2>
-    <table class="wp-list-table widefat fixed striped table-view-list posts">
+    <table class="wp-list-table widefat fixed striped table-view-list posts ptc-list-table">
         <thead>
         <tr>
             <td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-1" type="checkbox">
