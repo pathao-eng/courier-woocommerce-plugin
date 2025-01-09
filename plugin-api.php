@@ -201,9 +201,13 @@ function ptc_webhook_handler($data) {
     // add consignment_id to order meta
     update_post_meta($orderId, 'ptc_status', $status);
 
-    return rest_ensure_response(array(
-        'status' => 200,
+    $response =  rest_ensure_response(array(
+        'status' => 202,
         'message' => 'Order status updated',
         'data' => null
     ));
+
+    $response->set_status(202);
+
+    return $response;
 }
