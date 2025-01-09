@@ -210,6 +210,7 @@ function ptc_webhook_handler($data) {
     ));
 
     $response->set_status(202);
+    $response->header( 'X-Pathao-Merchant-Webhook-Integration-Secret', 'f3992ecc-59da-4cbe-a049-a13da2018d51' ); // optional
 
     return $response;
 }
