@@ -192,6 +192,7 @@ function ptc_webhook_handler($data) {
 
     $orderId = $data['merchant_order_id'];
     $status = $data['order_status'];
+    $deliveryFee = $data['delivery_fee'];
     $order = wc_get_order($orderId);
 
     if (!$order) {
@@ -200,10 +201,15 @@ function ptc_webhook_handler($data) {
 
     // add consignment_id to order meta
     update_post_meta($orderId, 'ptc_status', $status);
+    update_post_meta($orderId, 'ptc_delivery_fee', $deliveryFee);
 
-    return rest_ensure_response(array(
-        'status' => 200,
+    $response =  rest_ensure_response(array(
+        'status' => 202,
         'message' => 'Order status updated',
         'data' => null
     ));
+
+    $response->set_status(202);
+
+    return $response;
 }

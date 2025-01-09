@@ -106,8 +106,6 @@ function pt_hms_settings_page_callback()
                     let clientSecret = $('#client_secret').val();
                     let environment = $('#client_environment').val();
 
-                    console.log({clientId, clientSecret, environment})
-
                     $.ajax({
                         url: ajaxurl,
                         method: 'POST',
