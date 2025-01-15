@@ -190,6 +190,12 @@ function register_custom_endpoint() {
 
 function ptc_webhook_handler($data) {
 
+    $event = $data['event'];
+
+    if ($event == 'webhook_integration') {
+        return webhookResponse('Successfully accepted webhook_integration', 202);
+    }
+
     $orderId = $data['merchant_order_id'];
     $status = $data['order_status'];
     $deliveryFee = $data['delivery_fee'];
@@ -203,13 +209,21 @@ function ptc_webhook_handler($data) {
     update_post_meta($orderId, 'ptc_status', $status);
     update_post_meta($orderId, 'ptc_delivery_fee', $deliveryFee);
 
-    $response =  rest_ensure_response(array(
-        'status' => 202,
-        'message' => 'Order status updated',
+    return webhookResponse('Order status updated', 202);
+}
+
+/**
+ * @return WP_Error|WP_HTTP_Response|WP_REST_Response
+ */
+function webhookResponse($message, $statusCode = 200)
+{
+    $response = rest_ensure_response(array(
+        'status' => $statusCode,
+        'message' => $message,
         'data' => null
     ));
 
-    $response->set_status(202);
-
+    $response->set_status($statusCode);
+    $response->header('X-Pathao-Merchant-Webhook-Integration-Secret', 'f3992ecc-59da-4cbe-a049-a13da2018d51');
     return $response;
 }
