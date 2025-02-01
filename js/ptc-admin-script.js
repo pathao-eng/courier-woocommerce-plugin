@@ -58,9 +58,17 @@ jQuery(document).ready(function ($) {
 
     let populateModalData = async function () {
         if (orderData) {
+
+            let address = '';
+            if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
+              address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
+            } else {
+              address = `${orderData?.billing?.address_1}, ${orderData?.billing?.address_2}, ${orderData?.billing?.city}, ${orderData?.billing?.state}, ${orderData?.billing?.postcode}`;
+			}
+            
             nameInput.val(orderData?.billing?.full_name);
             phoneInput.val(orderData?.billing?.phone);
-            shippingAddressInput.val(`${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`);
+            shippingAddressInput.val(address);
 
             totalPriceDom.html(`${orderData.total} ${orderData.currency}`);
 
