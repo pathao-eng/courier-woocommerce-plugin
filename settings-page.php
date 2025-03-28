@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
-defined( 'PTC_PLUGIN_ORDERS_PAGE_TYPE' ) || define( 'PTC_PLUGIN_PAGE_TYPE', 'pt_hms_orders' );
-defined( 'PTC_PLUGIN_SETTINGS_PAGE_TYPE' ) || define( 'PTC_PLUGIN_SETTINGS_PAGE_TYPE', 'pt_hms_settings' );
+defined('PTC_PLUGIN_ORDERS_PAGE_TYPE') || define('PTC_PLUGIN_PAGE_TYPE', 'pt_hms_orders');
+defined('PTC_PLUGIN_SETTINGS_PAGE_TYPE') || define('PTC_PLUGIN_SETTINGS_PAGE_TYPE', 'pt_hms_settings');
 
 add_action('wp_ajax_get_token', 'ajax_get_token');
 add_action('wp_ajax_reset_token', 'ajax_reset_token');
@@ -54,10 +54,9 @@ function pt_hms_menu_page()
         'manage_options',
         PTC_PLUGIN_SETTINGS_PAGE_TYPE,
         'pt_hms_settings_page_callback',
-        'dashicons-move',
+        'dashicons-car',
         6
     );
-
 }
 
 // Render the settings page
@@ -67,44 +66,140 @@ function pt_hms_settings_page_callback()
     $all_fields_filled = isset(
         $options['client_id'],
         $options['client_secret'],
-//        $options['username'],
-//        $options['password'],
         $options['environment']
     );
 
     $token = $all_fields_filled ? pt_hms_get_token() : null;
     ?>
     <div class="wrap">
-        <h2>Pathao Courier Settings</h2>
-        <?php if ($all_fields_filled && !$token): ?>
-            <div class="notice notice-error">
-                <p>API credentials are invalid. Please check your credentials and try again.</p>
+        <div style="margin: 20px 0 20px;">
+            <div>
+            <div>
+                <img src="<?php echo PTC_PLUGIN_URL . 'assets/images/courier-logo.svg'; ?>" 
+                     alt="Pathao Courier Logo" 
+                     style="height: 35px;">
+                <h1 style="margin: 0; padding: 0; font-size: 23px; font-weight: 400;">Pathao Courier Settings</h1>
             </div>
-        <?php endif; ?>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('pt_hms_settings_group');
-            do_settings_sections('pt_hms_settings');
-            submit_button();
-            ?>
-        </form>
-        <!-- Token Fetch Button -->
-        <section>
-            <h3>Test Credentials</h3>
-            <button type="button" id="fetch-token-btn">Test credentials validity</button>
-
-            <?php if ($token): ?>
-                <button type="button" id="reset-token-btn">Reset token</button>
+            </div>
+            <?php if ($all_fields_filled && !$token): ?>
+                <div class="notice notice-error" style="" style="margin: 15px 0 0;">
+                    <p>
+                        <strong>Error:</strong> API credentials are invalid. Please check your credentials and try again.
+                    </p>
+                </div>
             <?php endif; ?>
-        </section>
-        <!-- JavaScript for AJAX call -->
+        </div>
+
+        <!-- Add Toast Container -->
+        <div id="ptc-toast-container" style="position: fixed; top: 50px; right: 20px; z-index: 9999;"></div>
+
+        <!-- Add Toast Styles -->
+        <style>
+            .ptc-toast {
+                min-width: 300px;
+                margin-bottom: 10px;
+                padding: 15px 20px;
+                border-radius: 4px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                font-size: 14px;
+                opacity: 0;
+                transform: translateX(100%);
+                transition: all 0.3s ease-in-out;
+            }
+
+            .ptc-toast.show {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+            .ptc-toast-error {
+                background: #fff;
+                border-left: 4px solid #dc3232;
+            }
+
+            .ptc-toast-success {
+                background: #fff;
+                border-left: 4px solid #46b450;
+            }
+
+            .ptc-toast-title {
+                font-weight: 600;
+                margin-bottom: 5px;
+            }
+
+            .ptc-toast-message {
+                color: #555;
+            }
+        </style>
+
+        <div class="card" style="max-width: 800px; padding: 20px; margin-top: 20px;">
+            <form method="post" action="options.php">
+                <?php
+                settings_fields('pt_hms_settings_group');
+                do_settings_sections('pt_hms_settings');
+                submit_button('Save Settings');
+                ?>
+            </form>
+        </div>
+
+        <!-- Token Management Section -->
+        <div class="card" style="max-width: 800px; padding: 20px; margin-top: 20px;">
+            <h2 style="margin-top: 0;">API Connection Test</h2>
+            <p class="description">Verify your API credentials and manage the connection token.</p>
+
+            <div style="margin-top: 15px;">
+                <button type="button" id="fetch-token-btn" class="button button-primary">
+                    <span class="dashicons dashicons-test" style="margin: 4px 5px 0 0;"></span>
+                    Test API Connection
+                </button>
+
+                <?php if ($token): ?>
+                    <button type="button" id="reset-token-btn" class="button">
+                        <span class="dashicons dashicons-update" style="margin: 4px 5px 0 0;"></span>
+                        Reset Token
+                    </button>
+                <?php endif; ?>
+            </div>
+        </div>
+
         <script type="text/javascript">
             jQuery(document).ready(function ($) {
+                function showToast(title, message, type = 'error') {
+                    const toast = $(`
+                        <div class="ptc-toast ptc-toast-${type}">
+                            <div class="ptc-toast-title">${title}</div>
+                            <div class="ptc-toast-message">${message}</div>
+                        </div>
+                    `);
+
+                    $('#ptc-toast-container').append(toast);
+
+                    // Trigger reflow to enable animation
+                    toast[0].offsetHeight;
+
+                    // Show toast
+                    toast.addClass('show');
+
+                    // Remove toast after 4 seconds
+                    setTimeout(() => {
+                        toast.removeClass('show');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 4000);
+                }
+
                 $('#fetch-token-btn').on('click', function () {
+                    const $btn = $(this);
+                    $btn.prop('disabled', true).text('Testing...');
 
                     let clientId = $('#client_id').val();
                     let clientSecret = $('#client_secret').val();
                     let environment = $('#client_environment').val();
+
+                    if (!clientId || !clientSecret || !environment) {
+                        showToast('Validation Error', 'Please fill in all required fields.');
+                        $btn.prop('disabled', false).html('<span class="dashicons dashicons-test" style="margin: 4px 5px 0 0;"></span>Test API Connection');
+                        return;
+                    }
 
                     $.ajax({
                         url: ajaxurl,
@@ -117,17 +212,23 @@ function pt_hms_settings_page_callback()
                         },
                         success: function (response) {
                             if (response.success) {
-                                alert('API credentials valid');
+                                showToast('Success', 'API connection successful!', 'success');
                             } else {
-                                alert('Error: ' + response.data.message);
+                                showToast('Connection Failed', response.data.message);
                             }
                         },
                         error: function () {
-                            alert('An error occurred.');
+                            showToast('Error', 'Failed to retrieve token. Please check your credentials and try again.');
+                        },
+                        complete: function () {
+                            $btn.prop('disabled', false).html('<span class="dashicons dashicons-test" style="margin: 4px 5px 0 0;"></span>Test API Connection');
                         }
                     });
                 });
+
                 $('#reset-token-btn').on('click', function () {
+                    const $btn = $(this);
+                    $btn.prop('disabled', true).text('Resetting...');
 
                     $.ajax({
                         url: ajaxurl,
@@ -137,13 +238,16 @@ function pt_hms_settings_page_callback()
                         },
                         success: function (response) {
                             if (response.success) {
-                                alert('Token Reset Successful');
+                                showToast('Success', 'Token has been successfully reset.', 'success');
                             } else {
-                                alert('Error: ' + response.data.message);
+                                showToast('Reset Failed', response.data.message);
                             }
                         },
                         error: function () {
-                            alert('An error occurred.');
+                            showToast('Error', 'An error occurred while resetting the token.');
+                        },
+                        complete: function () {
+                            $btn.prop('disabled', false).html('<span class="dashicons dashicons-update" style="margin: 4px 5px 0 0;"></span>Reset Token');
                         }
                     });
                 });
@@ -154,7 +258,8 @@ function pt_hms_settings_page_callback()
 }
 
 // Add submenu page to the 'Settings' menu
-function pt_hms_orders_page() {
+function pt_hms_orders_page()
+{
     add_submenu_page(
         PTC_PLUGIN_SETTINGS_PAGE_TYPE,
         'Orders',
@@ -167,7 +272,8 @@ function pt_hms_orders_page() {
 }
 
 // Callback function to display the content of the submenu page
-function pt_hms_pathao_courier_page_callback() {
+function pt_hms_pathao_courier_page_callback()
+{
     echo '<div class="wrap">';
     echo '<h2>Pathao Courier Order Page</h2>';
     echo '<p>Manage your deliveries without any distraction</p>';
@@ -196,21 +302,23 @@ function pt_hms_settings_init()
 
 function section_one_callback()
 {
-    echo 'Enter your API credentials below:';
+    echo '<p class="description" style="margin-bottom: 20px;">Enter your Pathao API credentials below. You can find these in your Pathao merchant dashboard.</p>';
 }
 
 function field_client_id_callback()
 {
     $options = get_option('pt_hms_settings');
     $value = is_array($options) && isset($options['client_id']) ? $options['client_id'] : '';
-    echo "<input type='text' id='client_id' name='pt_hms_settings[client_id]' value='{$value}' style='width: 300px;' />";
+    echo "<input type='text' id='client_id' name='pt_hms_settings[client_id]' value='{$value}' class='regular-text' />";
+    echo "<p class='description'>Your Pathao API Client ID</p>";
 }
 
 function field_client_secret_callback()
 {
     $options = get_option('pt_hms_settings');
     $value = is_array($options) && isset($options['client_secret']) ? $options['client_secret'] : '';
-    echo "<input type='password' id='client_secret' name='pt_hms_settings[client_secret]' value='{$value}' style='width: 300px;' />";
+    echo "<input type='password' id='client_secret' name='pt_hms_settings[client_secret]' value='{$value}' class='regular-text' />";
+    echo "<p class='description'>Your Pathao API Client Secret</p>";
 }
 
 function field_webhook_callback()
