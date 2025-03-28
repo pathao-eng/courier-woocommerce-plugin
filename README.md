@@ -75,6 +75,14 @@ To use follow these steps:
 ![img_8.png](screenshots%2Fimg_8.png)
 
 ## Changelog
+- v.1.2.0
+   - Bug Fixes
+      - hotfix and refactor code and default value mismatch error
+      - hotfix: Webhook for new merchant panel
+      - add optional header in new webhook
+      - billing address and shipping issue
+   - Feature
+     - Enhance Pathao Courier settings page UI and user experience
 - v.1.1.6
    - Bug Fixes
       - add a secondary phone number field in the Create Order page
