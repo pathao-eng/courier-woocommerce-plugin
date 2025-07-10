@@ -235,7 +235,7 @@ $search = $_GET['search'] ?? '';
                             <?php if (!$consignmentId): ?>
                                 <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                                     <button class="ptc-open-modal-button" data-order-id="<?php echo $orderId ?>">
-                                        <?php echo __('Send with Pathao', 'textdomain') ?>
+                                        <?php echo __('Send with Pathao', 'pathao_text_domain') ?>
                                     </button>
                                 </td>
                             <?php else: ?>

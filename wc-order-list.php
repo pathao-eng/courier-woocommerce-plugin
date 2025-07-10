@@ -21,9 +21,9 @@ function initialize_admin_columns()
 
 function ptc_add_column_to_order_list($columns)
 {
-    $columns['pathao'] = __('Pathao Courier', 'textdomain');
-    $columns['pathao_status'] = __('Pathao Courier Status', 'textdomain');
-    $columns['pathao_delivery_fee'] = __('Pathao Courier Delivery Fee', 'textdomain');
+    $columns['pathao'] = __('Pathao Courier', 'pathao_text_domain');
+    $columns['pathao_status'] = __('Pathao Courier Status', 'pathao_text_domain');
+    $columns['pathao_delivery_fee'] = __('Pathao Courier Delivery Fee', 'pathao_text_domain');
     return $columns;
 }
 
@@ -55,7 +55,7 @@ function ptc_render_store_modal_button($post_id)
 {
     $consignmentId = get_post_meta($post_id, 'ptc_consignment_id', true);
 
-    $button = sprintf('<button class="ptc-open-modal-button" data-order-id="%s">%s</button>', $post_id, __('Send with Pathao', 'textdomain'));
+    $button = sprintf('<button class="ptc-open-modal-button" data-order-id="%s">%s</button>', $post_id, __('Send with Pathao', 'pathao_text_domain'));
 
     if ($consignmentId) {
 

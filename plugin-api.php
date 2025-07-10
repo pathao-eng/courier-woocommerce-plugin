@@ -17,13 +17,13 @@ function ptc_order_list_column_values_callback($value, $column_name, $post_meta)
 function ptc_order_list_columns($columns = [])
 {
     return apply_filters('custom_table_columns', [
-            'order_number' => __('Order', 'textdomain'),
-            'date' => __('Date', 'textdomain'),
-            'status' => __('Status', 'textdomain'),
-            'total' => __('Total', 'textdomain'),
-            'pathao' => __('Pathao Courier', 'textdomain'),
-            'pathao_status' => __('Pathao Courier Status', 'textdomain'),
-            'pathao_delivery_fee' => __('Pathao Courier Delivery Fee', 'textdomain'),
+            'order_number' => __('Order', 'pathao_text_domain'),
+            'date' => __('Date', 'pathao_text_domain'),
+            'status' => __('Status', 'pathao_text_domain'),
+            'total' => __('Total', 'pathao_text_domain'),
+            'pathao' => __('Pathao Courier', 'pathao_text_domain'),
+            'pathao_status' => __('Pathao Courier Status', 'pathao_text_domain'),
+            'pathao_delivery_fee' => __('Pathao Courier Delivery Fee', 'pathao_text_domain'),
 
         ] + $columns);
 }
