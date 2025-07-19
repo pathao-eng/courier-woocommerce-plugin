@@ -37,7 +37,10 @@ jQuery(document).ready(function($) {
         </div>
     `);
 
-    form.on('submit', function(e) {
+
+    form.on('click', 'input[type="submit"][name="bulk_action"], button[type="submit"][name="bulk_action"]', function(e) {
+
+        console.log('Apply button clicked!');
         const action = $('select[name="action"]').val() || $('select[name="action2"]').val();
 
         if (action === 'send_with_pathao') {
@@ -134,5 +137,6 @@ jQuery(document).ready(function($) {
                 $('#custom-modal-overlay').fadeOut();
             });
         }
+        submitter = null;
     });
 });
