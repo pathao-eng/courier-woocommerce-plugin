@@ -15,14 +15,15 @@ jQuery(document).ready(function($) {
                                 <th>Recipient Phone</th>
                                 <th>Recipient Secondary Phone</th>
                                 <th>Address</th>
+                                <th>Collectable Amount</th>
                                 <th>Note</th>
                                 <th>Special Instruction</th>
-                                <th>Collectable Amount</th>
                                 <th>Store</th>
                                 <th>Delivery Type</th>
                                 <th>Item Type</th>
                                 <th>Quantity</th>
                                 <th>Weight</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -54,6 +55,38 @@ jQuery(document).ready(function($) {
             const tbody = $('#order-edit-table tbody');
             tbody.empty();
 
+            tbody.append(`
+                    <tr>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td>--</td>
+                        <td><input type="text" name="default_item_description" value=""></td>
+                        <td><input type="text" name="default_special_instruction" value=""></td>
+                        <td>
+                            <select name="default_store_id">
+                                <option value="">-- Select --</option>
+                                <option value="48">Pathao Regular</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select name="default_delivery_type">
+                                <option value="">-- Select --</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select name="default_item_type">
+                                <option value="">-- Select --</option>
+                            </select>
+                        </td>
+                        <td><input type="number" value="0" name="default_item_quantity"></td>
+                        <td><input type="number" value="0"   name="default_item_weight"></td>
+                        <td><button type="button" id="ptc-apply-btn" class="button button-primary ptc-item-btn">Apply for all</button></td>
+                    </tr>
+                `);
+
             // Populate rows (placeholder editable fields)
             selectedOrders.forEach(id => {
                 tbody.append(`
@@ -63,14 +96,29 @@ jQuery(document).ready(function($) {
                         <td><input type="text" name="edited_orders[${id}][recipient_phone]" value=""></td>
                         <td><input type="text" name="edited_orders[${id}][recipient_secondary_phone]" value=""></td>
                         <td><input type="text" name="edited_orders[${id}][recipient_address]" value=""></td>
+                        <td><input type="text" name="edited_orders[${id}][amount_to_collect]" value=""></td>
                         <td><input type="text" name="edited_orders[${id}][item_description]" value=""></td>
                         <td><input type="text" name="edited_orders[${id}][special_instruction]" value=""></td>
-                        <td><input type="text" name="edited_orders[${id}][amount_to_collect]" value=""></td>
-                        <td><input type="text" name="edited_orders[${id}][store_id]" value=""></td>
-                        <td><input type="text" name="edited_orders[${id}][delivery_type]" value=""></td>
-                        <td><input type="text" name="edited_orders[${id}][item_type]" value=""></td>
-                        <td><input type="text" name="edited_orders[${id}][item_quantity]" value=""></td>
-                        <td><input type="text" name="edited_orders[${id}][item_weight]" value=""></td>
+                        <td>
+                            <select name="edited_orders[${id}][store_id]">
+                                <option value="48">Pathao Regular</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select name="edited_orders[${id}][delivery_type]">
+                                <option value="48" selected>Pathao Regular</option>
+                                <option value="49">Pathao Express</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select name="edited_orders[${id}][item_type]">
+                                <option value="48" selected>Pathao Regular</option>
+                                <option value="49">Pathao Express</option>
+                            </select>
+                        </td>
+                        <td><input type="number" value="0" name="edited_orders[${id}][item_quantity]" value=""></td>
+                        <td><input type="number" value="0.5"   name="edited_orders[${id}][item_weight]" value=""></td>
+                        <td><button type="button" id="ptc-apply-btn" class="button button-danger ptc-item-btn">❌</button></td>
                     </tr>
                 `);
             });

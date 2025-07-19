@@ -126,3 +126,7 @@
 .ptc-modal-bulk-order input {
     width: 100%;
 }
+
+.ptc-item-btn {
+    float: right;
+}
