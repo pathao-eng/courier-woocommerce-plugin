@@ -132,11 +132,22 @@ function ajax_pt_wc_order_details()
         wp_send_json_error('no_order', 'No order found', 404);
     }
 
+    $orderData = getPtOrderData($order);
+
+    wp_send_json_success($orderData);
+}
+
+/**
+ * @param bool|WC_Order|WC_Order_Refund $order
+ * @return array
+ */
+function getPtOrderData(bool|WC_Order|WC_Order_Refund $order): array
+{
     $orderData = $order->get_data();
     $orderItems = 0;
     $totalWeight = 0;
     // add items to order
-    $orderData['items'] = array_values(array_map(function($item) use (&$orderItems, &$totalWeight) {
+    $orderData['items'] = array_values(array_map(function ($item) use (&$orderItems, &$totalWeight) {
 
         $quantity = $item->get_quantity();
         $totalWeight += (float)$item->get_product()->get_weight();
@@ -157,12 +168,12 @@ function ajax_pt_wc_order_details()
     }, $order->get_items()));
 
     $orderData['billing']['full_name'] = $order->get_formatted_billing_full_name();
-    
+
     $orderData['total_items'] = $orderItems;
     $orderData['total_weight'] = $totalWeight;
     $orderData['payment_date'] = $order->get_date_paid();
 
-    wp_send_json_success($orderData);
+    return $orderData;
 }
 
 add_action('rest_api_init', 'register_custom_endpoint');

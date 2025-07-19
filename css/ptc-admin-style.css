@@ -86,7 +86,7 @@
     width: 100%;
 }
 
-#ptc-custom-modal  .row {
+#ptc-custom-modal .row {
     display: flex;
     justify-content: space-between;
 }
@@ -104,4 +104,25 @@
 .pt-field-error-message {
     display: none;
     color: red;
+}
+
+.ptc-modal-bulk-order {
+    background: #fff;
+    padding: 20px;
+    max-width: 70%;
+    max-height: 70%;
+    margin: 100px auto;
+    border: 1px solid #ccd0d4;
+    border-radius: 3px;
+    position: relative;
+    overflow: auto;
+}
+
+.ptc-modal-bulk-order td {
+    position: relative;
+}
+
+
+.ptc-modal-bulk-order input {
+    width: 100%;
 }
