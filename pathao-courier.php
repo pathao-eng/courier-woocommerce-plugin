@@ -60,24 +60,36 @@ function enqueue_custom_admin_script($hook) {
         'merchantPanelBaseUrl' => get_ptc_merchant_panel_base_url(),
     ]);
 
-        wp_enqueue_script(
-            'ptc-bulk-action',
-            plugin_dir_url( __FILE__ ) . 'js/ptc-bulk-action.js',
-            ['jquery'],
-            filemtime(plugin_dir_path( __FILE__ ) . '/js/ptc-bulk-action.js'),
-            true
-        );
-        wp_enqueue_style(
-            'sweetalert2',
-            'https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css'
-        );
-        wp_enqueue_script(
-            'sweetalert2',
-            'https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js',
-            ['jquery'],
-            null,
-            true
-        );
+    wp_enqueue_script(
+        'ptc-bulk-action',
+        plugin_dir_url( __FILE__ ) . 'js/ptc-bulk-action.js',
+        ['jquery'],
+        filemtime(plugin_dir_path( __FILE__ ) . '/js/ptc-bulk-action.js'),
+        true
+    );
+    wp_enqueue_style(
+        'sweetalert2',
+        'https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css'
+    );
+    wp_enqueue_script(
+        'sweetalert2',
+        'https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js',
+        ['jquery'],
+        null,
+        true
+    );
+
+    wp_enqueue_script(
+        'handsontable-js',
+        'https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.full.min.js',
+        ['jquery'],
+        null,
+        true
+    );
+    wp_enqueue_style(
+        'handsontable-css',
+        'https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.full.min.css'
+    );
 }
 
 
