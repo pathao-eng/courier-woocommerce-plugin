@@ -107,15 +107,11 @@
 }
 
 .ptc-modal-bulk-order {
-    background: #fff;
-    padding: 20px;
-    max-width: 70%;
-    max-height: 70%;
-    margin: 100px auto;
-    border: 1px solid #ccd0d4;
-    border-radius: 3px;
-    position: relative;
-    overflow: auto;
+    padding: 50px;
+    margin: 0 auto;
+    max-width: 960px;
+    background: white;
+    /*overflow-x: auto;*/
 }
 
 .ptc-modal-bulk-order td {
