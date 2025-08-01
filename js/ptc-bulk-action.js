@@ -19,12 +19,71 @@ jQuery(document).ready(function($) {
         });
     }
 
+    function getOrders(orderIds) {
+        return new Promise((resolve, reject) => {
+            $.post(ajaxurl, {
+                action: 'get_wc_order_bulk',
+                order_id: orderIds
+            })
+                .done(response => {
+                    const orders = response?.data;
+                    resolve(orders);
+                })
+                .fail(err => reject(err));
+        });
+    }
+
+
     function getDeliveryTypes() {
         return [
             { id: "48", name: "Normal Delivery", selected: true },
             { id: "12", name: "On Demand", selected: false },
             { id: "24", name: "Express Delivery", selected: false }
         ];
+    }
+
+    function populateBulkModalData(data, stores, deliveryTypes, itemTypes) {
+
+
+        let defaultStore = ''
+
+        if (stores.length) {
+            defaultStore = stores.find(store => store.is_default_store)?.name || stores[0]?.name
+        }
+
+        let defaultDeliveryType = deliveryTypes[0].name
+        let defaultItemType = itemTypes[0].name
+
+        let address = '';
+        if (data?.shipping?.address_1 && data?.shipping?.address_2) {
+            address = `${data?.shipping?.address_1}, ${data?.shipping?.address_2}, ${data?.shipping?.city}, ${data?.shipping?.state}, ${data?.shipping?.postcode}`;
+        } else {
+            address = `${data?.billing?.address_1}, ${data?.billing?.address_2}, ${data?.billing?.city}, ${data?.billing?.state}, ${data?.billing?.postcode}`;
+        }
+
+        console.log({
+            stores, deliveryTypes, itemTypes,
+            defaultStore,
+            defaultItemType,
+            defaultDeliveryType
+        })
+
+        return {
+            merchant_order_id: data.id,
+            recipient_name: data?.billing?.full_name,
+            recipient_phone: data?.billing?.phone,
+            recipient_secondary_phone: '',
+            recipient_address: address,
+            amount_to_collect: data.total,
+            item_description: '',
+            special_instruction: '',
+            store_id: defaultStore,
+            delivery_type: defaultDeliveryType,
+            item_type: defaultItemType,
+            item_quantity: data?.items.length,
+            item_weight: 0.5
+        }
+
     }
 
     function getItemTypes() {
@@ -38,28 +97,27 @@ jQuery(document).ready(function($) {
     async function renderHandsontable(selectedOrders) {
         const container = document.getElementById('hot-container');
 
-        const data = selectedOrders.map(orderId => ({
-            order_id: orderId,
-            recipient_name: '',
-            recipient_phone: '',
-            // delivery_type: '48',
-            amount_to_collect: 100,
-        }));
+        const stores = (await getStores());
+        const storesOnlyNames = stores?.map((item) => {
+            return item.name
+        })
 
-        const stores = (await getStores())?.map((item) => {
+        const deliveryTypes = getDeliveryTypes();
+        const deliveryTypesOnlyNames = deliveryTypes.map((item) => {
             return item.name
-        });
-        const deliveryTypes = getDeliveryTypes().map((item) => {
+        })
+
+        const itemTypes = getItemTypes();
+        const itemTypesOnlyNames = itemTypes.map((item) => {
             return item.name
-        });
-        const itemTypes = getItemTypes().map((item) => {
-            return item.name
-        });
+        })
+
+        const data = (await getOrders(selectedOrders.join(',')))?.map(order => populateBulkModalData(order, stores, deliveryTypes, itemTypes));
 
         hotInstance = new Handsontable(container, {
             data: data,
             columns: [
-                { data: 'order_id', readOnly: true },
+                { data: 'merchant_order_id', readOnly: true },
                 { data: 'recipient_name', type: 'text' },
                 { data: 'recipient_phone', type: 'text' },
                 { data: 'recipient_secondary_phone', type: 'text' },
@@ -70,7 +128,7 @@ jQuery(document).ready(function($) {
                 {
                     data: 'store_id',
                     type: 'dropdown',
-                    source: stores,
+                    source: storesOnlyNames,
                     optionLabel: 'name',
                     value: 'id',
                     allowInvalid: true,
@@ -79,7 +137,7 @@ jQuery(document).ready(function($) {
                 {
                     data: 'delivery_type',
                     type: 'dropdown',
-                    source: deliveryTypes,
+                    source: deliveryTypesOnlyNames,
                     optionLabel: 'name',
                     value: 'id',
                     allowInvalid: true,
@@ -88,7 +146,7 @@ jQuery(document).ready(function($) {
                 {
                     data: 'item_type',
                     type: 'dropdown',
-                    source: itemTypes,
+                    source: itemTypesOnlyNames,
                     optionLabel: 'name',
                     value: 'id',
                     allowInvalid: true,
@@ -124,6 +182,8 @@ jQuery(document).ready(function($) {
             stretchH: 'all',
             licenseKey: 'non-commercial-and-evaluation'
         });
+
+
     }
 
     const form = $('#wc-orders-filter');

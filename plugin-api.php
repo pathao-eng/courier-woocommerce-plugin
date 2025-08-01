@@ -7,6 +7,7 @@ add_action('wp_ajax_get_zones', 'pt_hms_ajax_get_zones');
 add_action('wp_ajax_get_areas', 'pt_hms_ajax_get_areas');
 add_action('wp_ajax_create_order_to_ptc', 'ajax_pt_hms_create_new_order');
 add_action('wp_ajax_get_wc_order', 'ajax_pt_wc_order_details');
+add_action('wp_ajax_get_wc_order_bulk', 'ajax_pt_wc_order_details_bulk');
 
 function ptc_order_list_column_values_callback($value, $column_name, $post_meta)
 {
@@ -133,6 +134,26 @@ function ajax_pt_wc_order_details()
     }
 
     $orderData = getPtOrderData($order);
+
+    wp_send_json_success($orderData);
+}
+
+function ajax_pt_wc_order_details_bulk()
+{
+
+    $orderIds =  $_POST['order_id'] ?? null;
+
+    if (!$orderIds) {
+        wp_send_json_error('no_order_id', 'No order id found', 404);
+    }
+
+    $orderIds = explode(',', $orderIds);
+
+    $orderData = [];
+    foreach ($orderIds as $orderId) {
+        $order = wc_get_order($orderId);
+        $orderData[] = getPtOrderData($order);
+    }
 
     wp_send_json_success($orderData);
 }
