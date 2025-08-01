@@ -127,10 +127,9 @@ jQuery(document).ready(function($) {
     }
 
     const form = $('#wc-orders-filter');
-    const ptcBulkModal = $('#ptc-bulk-modal-overlay')
 
     $('body').append(`
-        <div id="custom-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+        <div id="ptc-bulk-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.5); z-index: 10000;">
              <div class="ptc-modal-bulk-order">
                 <h2 class="wp-heading-inline ">Send with Pathao</h2>
@@ -139,10 +138,10 @@ jQuery(document).ready(function($) {
         </div>
     `);
 
-    ptcBulkModal.on('click', function (e) {
-        if ($(e.target).closest('.modal-content').length === 0) {
-            ptcBulkModal.hide();
-            orderData = {};
+    $(document).on('click', '#ptc-bulk-modal-overlay', function (e) {
+        if (e.target === this) {
+            $(this).fadeOut();
+            hotInstance?.destroy();
         }
     });
 
@@ -165,7 +164,7 @@ jQuery(document).ready(function($) {
 
             renderHandsontable(selectedOrders)
 
-            $('#custom-modal-overlay').fadeIn();
+            $('#ptc-bulk-modal-overlay').fadeIn();
 
             $('#modal-confirm').off('click').on('click', function() {
                 $('#custom-modal-overlay').fadeOut();
