@@ -2,16 +2,59 @@ jQuery(document).ready(function($) {
 
     let hotInstance;
 
-    function renderHandsontable(selectedOrders) {
+    function getStores() {
+        return new Promise((resolve, reject) => {
+            $.post(ajaxurl, { action: 'get_stores' })
+                .done(response => {
+                    const stores = response?.data.map(store => ({
+                        id: store.store_id,
+                        name: store.store_name,
+                        is_default_store: store.is_default_store,
+                        is_active: store.is_active,
+                        selected: store.is_default_store
+                    }));
+                    resolve(stores);
+                })
+                .fail(err => reject(err));
+        });
+    }
+
+    function getDeliveryTypes() {
+        return [
+            { id: "48", name: "Normal Delivery", selected: true },
+            { id: "12", name: "On Demand", selected: false },
+            { id: "24", name: "Express Delivery", selected: false }
+        ];
+    }
+
+    function getItemTypes() {
+        return [
+            { id: "2", name: "Parcel"},
+            { id: "1", name: "Document", selected: false },
+            { id: "3", name: "Fragile", selected: false }
+        ];
+    }
+
+    async function renderHandsontable(selectedOrders) {
         const container = document.getElementById('hot-container');
 
         const data = selectedOrders.map(orderId => ({
             order_id: orderId,
             recipient_name: '',
             recipient_phone: '',
-            delivery_type: '48',
+            // delivery_type: '48',
             amount_to_collect: 100,
         }));
+
+        const stores = (await getStores())?.map((item) => {
+            return item.name
+        });
+        const deliveryTypes = getDeliveryTypes().map((item) => {
+            return item.name
+        });
+        const itemTypes = getItemTypes().map((item) => {
+            return item.name
+        });
 
         hotInstance = new Handsontable(container, {
             data: data,
@@ -27,12 +70,7 @@ jQuery(document).ready(function($) {
                 {
                     data: 'store_id',
                     type: 'dropdown',
-                    source: [
-                        {
-                            id: 1,
-                            name: "store 1"
-                        }
-                    ],
+                    source: stores,
                     optionLabel: 'name',
                     value: 'id',
                     allowInvalid: true,
@@ -41,12 +79,7 @@ jQuery(document).ready(function($) {
                 {
                     data: 'delivery_type',
                     type: 'dropdown',
-                    source: [
-                        {
-                            id: 48,
-                            name: "normal"
-                        }
-                    ],
+                    source: deliveryTypes,
                     optionLabel: 'name',
                     value: 'id',
                     allowInvalid: true,
@@ -55,23 +88,20 @@ jQuery(document).ready(function($) {
                 {
                     data: 'item_type',
                     type: 'dropdown',
-                    source: [
-                        {
-                            id: 2,
-                            name: "parcel"
-                        },
-                        {
-                            id: 3,
-                            name: "document"
-                        }
-                    ],
+                    source: itemTypes,
                     optionLabel: 'name',
                     value: 'id',
                     allowInvalid: true,
                     strict: true,
                 },
-                { data: 'item_quantity', type: 'numeric' },
-                { data: 'item_weight', type: 'numeric' },
+                {
+                    data: 'item_quantity',
+                    type: 'numeric'
+                },
+                {
+                    data: 'item_weight',
+                    type: 'numeric',
+                },
             ],
             colHeaders: [
                 'Order ID',
@@ -97,6 +127,7 @@ jQuery(document).ready(function($) {
     }
 
     const form = $('#wc-orders-filter');
+    const ptcBulkModal = $('#ptc-bulk-modal-overlay')
 
     $('body').append(`
         <div id="custom-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
@@ -108,6 +139,12 @@ jQuery(document).ready(function($) {
         </div>
     `);
 
+    ptcBulkModal.on('click', function (e) {
+        if ($(e.target).closest('.modal-content').length === 0) {
+            ptcBulkModal.hide();
+            orderData = {};
+        }
+    });
 
     form.on('click', 'input[type="submit"][name="bulk_action"], button[type="submit"][name="bulk_action"]', function(e) {
 
