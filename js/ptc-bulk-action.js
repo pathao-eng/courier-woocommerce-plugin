@@ -61,13 +61,6 @@ jQuery(document).ready(function($) {
             address = `${data?.billing?.address_1}, ${data?.billing?.address_2}, ${data?.billing?.city}, ${data?.billing?.state}, ${data?.billing?.postcode}`;
         }
 
-        console.log({
-            stores, deliveryTypes, itemTypes,
-            defaultStore,
-            defaultItemType,
-            defaultDeliveryType
-        })
-
         return {
             merchant_order_id: data.id,
             recipient_name: data?.billing?.full_name,
@@ -194,7 +187,13 @@ jQuery(document).ready(function($) {
              <div class="ptc-modal-bulk-order">
                 <h2 class="wp-heading-inline ">Send with Pathao</h2>
                 <div id="hot-container" style="margin: 50px auto; max-width:960px;"></div>
+                
+                 <div style="margin-top:15px; text-align:right;">
+                    <button type="button" id="modal-cancel" class="button">Cancel</button>
+                    <button type="button" id="modal-confirm" class="button button-primary">Confirm</button>
+                </div>
             </div>
+           
         </div>
     `);
 
@@ -207,7 +206,6 @@ jQuery(document).ready(function($) {
 
     form.on('click', 'input[type="submit"][name="bulk_action"], button[type="submit"][name="bulk_action"]', function(e) {
 
-        console.log('Apply button clicked!');
         const action = $('select[name="action"]').val() || $('select[name="action2"]').val();
 
         if (action === 'send_with_pathao') {
@@ -232,7 +230,8 @@ jQuery(document).ready(function($) {
             });
 
             $('#modal-cancel').off('click').on('click', function() {
-                $('#custom-modal-overlay').fadeOut();
+                hotInstance?.destroy();
+                $('#ptc-bulk-modal-overlay').fadeOut();
             });
         }
         submitter = null;
