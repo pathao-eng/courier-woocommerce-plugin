@@ -36,9 +36,9 @@ jQuery(document).ready(function($) {
 
     function getDeliveryTypes() {
         return [
-            { id: "48", name: "Normal Delivery", selected: true },
-            { id: "12", name: "On Demand", selected: false },
-            { id: "24", name: "Express Delivery", selected: false }
+            { id: 48, name: "Normal Delivery", selected: true },
+            { id: 12, name: "On Demand", selected: false },
+            { id: 24, name: "Express Delivery", selected: false }
         ];
     }
 
@@ -81,27 +81,37 @@ jQuery(document).ready(function($) {
 
     function getItemTypes() {
         return [
-            { id: "2", name: "Parcel"},
-            { id: "1", name: "Document", selected: false },
-            { id: "3", name: "Fragile", selected: false }
+            { id: 2, name: "Parcel"},
+            { id: 1, name: "Document", selected: false },
+            { id: 3, name: "Fragile", selected: false }
         ];
     }
+
+    let stores = [];
+    let deliveryTypes = [];
+    let itemTypes = [];
+    let storesWithID = {}
+    let deliveryTypesWithID = {}
+    let itemTypesWithID = {}
 
     async function renderHandsontable(selectedOrders) {
         const container = document.getElementById('hot-container');
 
-        const stores = (await getStores());
+        stores = (await getStores());
         const storesOnlyNames = stores?.map((item) => {
+            storesWithID[item.name] = item.id
             return item.name
         })
 
-        const deliveryTypes = getDeliveryTypes();
+        deliveryTypes = getDeliveryTypes();
         const deliveryTypesOnlyNames = deliveryTypes.map((item) => {
+            deliveryTypesWithID[item.name] = item.id
             return item.name
         })
 
-        const itemTypes = getItemTypes();
+        itemTypes = getItemTypes();
         const itemTypesOnlyNames = itemTypes.map((item) => {
+            itemTypesWithID[item.name] = item.id
             return item.name
         })
 
@@ -225,8 +235,18 @@ jQuery(document).ready(function($) {
             $('#ptc-bulk-modal-overlay').fadeIn();
 
             $('#modal-confirm').off('click').on('click', function() {
-                $('#custom-modal-overlay').fadeOut();
-                form.off('submit').submit();
+                // $('#custom-modal-overlay').fadeOut();
+                // form.off('submit').submit();
+
+                const data = hotInstance?.getSourceData().map(data => {
+
+                    data.store_id = storesWithID[data.store_id]
+                    data.delivery_type = deliveryTypesWithID[data.delivery_type]
+                    data.item_type = itemTypesWithID[data.item_type]
+
+                    return data
+                });
+                console.log('Handsontable Data:', data);
             });
 
             $('#modal-cancel').off('click').on('click', function() {
