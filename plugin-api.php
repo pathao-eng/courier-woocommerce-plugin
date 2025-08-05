@@ -10,7 +10,7 @@ add_action('wp_ajax_create_bulk_order_to_ptc', 'ajax_pt_hms_create_new_order_bul
 add_action('wp_ajax_get_wc_order', 'ajax_pt_wc_order_details');
 add_action('wp_ajax_get_wc_order_bulk', 'ajax_pt_wc_order_details_bulk');
 
-$orderEvents = [
+$orderEventsStatusMap = [
     'order.created' => 'Order_Created',
     'order.updated' => 'Order_Updated',
     'order.pickup-requested' => 'Pickup_Requested',
