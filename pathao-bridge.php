@@ -166,6 +166,40 @@ function pt_hms_create_new_order($order_data)
     $api_url = get_base_url() . '/aladdin/api/v1/orders';
     $token = pt_hms_get_token();
 
+    $payload = makeDto($order_data);
+
+    $args = array(
+        'headers' => array(
+            'Authorization' => 'Bearer ' . $token,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'source' => 'woocommerce'
+        ),
+        'body' => json_encode($payload)
+    );
+
+    $response = wp_remote_post($api_url, $args);
+
+    // status code 201 means created
+    if (wp_remote_retrieve_response_code($response) >= 300) {
+        wp_send_json_error(json_decode(wp_remote_retrieve_body($response), true), wp_remote_retrieve_response_code($response));
+    }
+
+    if (is_wp_error($response)) {
+        return $response->get_error_message();
+    }
+
+    $body = wp_remote_retrieve_body($response);
+
+    return json_decode($body, true);
+}
+
+/**
+ * @param $order_data
+ * @return array
+ */
+function makeDto($order_data): array
+{
     $payload = [
         'store_id' => sanitize_text_field($order_data['store_id']),
         'merchant_order_id' => sanitize_text_field($order_data['merchant_order_id']),
@@ -194,6 +228,17 @@ function pt_hms_create_new_order($order_data)
     if (!empty($order_data['recipient_area'])) {
         $payload['recipient_area'] = (int)sanitize_text_field($order_data['recipient_area']);
     }
+    return $payload;
+}
+
+function pt_hms_create_new_order_bulk($order_data)
+{
+    $api_url = get_base_url() . '/aladdin/api/v1/orders/bulk';
+    $token = pt_hms_get_token();
+
+    $payload = [
+        'orders' => $order_data
+    ];
 
     $args = array(
         'headers' => array(

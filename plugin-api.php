@@ -6,6 +6,7 @@ add_action('wp_ajax_get_cities', 'pt_hms_ajax_get_cities');
 add_action('wp_ajax_get_zones', 'pt_hms_ajax_get_zones');
 add_action('wp_ajax_get_areas', 'pt_hms_ajax_get_areas');
 add_action('wp_ajax_create_order_to_ptc', 'ajax_pt_hms_create_new_order');
+add_action('wp_ajax_create_bulk_order_to_ptc', 'ajax_pt_hms_create_new_order_bulk');
 add_action('wp_ajax_get_wc_order', 'ajax_pt_wc_order_details');
 add_action('wp_ajax_get_wc_order_bulk', 'ajax_pt_wc_order_details_bulk');
 
@@ -117,6 +118,68 @@ function ajax_pt_hms_create_new_order()
     wp_send_json($response);
 }
 
+function ajax_pt_hms_create_new_order_bulk()
+{
+    $key = 'ptc_consignment_id';
+    // Check nonce for security
+//    $nonce = wp_verify_nonce( $_SERVER['HTTP_X_WPTC_NONCE'] ?? '', 'wp_rest', false );
+//
+//    if(!$nonce){
+//
+//        wp_send_json_error([
+//            'error' => 'validation_failed',
+//            'message' => 'nonce mismatch'
+//        ], 403);
+//    }
+
+
+
+    // sanitize input fields
+
+    $orderData = array_map(function ($order) {
+
+        if (!is_array($order)) {
+            wp_send_json_error("Invalid Data", 403);
+        }
+
+        return makeDto($order);
+
+    }, $_POST['orders'] ?? []);
+
+//
+//    $orderId = trim($orderData['merchant_order_id'] ?? '');
+//
+//    // check order already have the consignment id
+//    if (get_post_meta($orderId, $key, true)) {
+//        wp_send_json_error([
+//            'error' => 'validation_failed',
+//            'message' => 'Order already have a consignment id'
+//        ], 403);
+//    }
+
+//    $order = wc_get_order($orderId);
+//
+//    if (!$order) {
+//        wp_send_json_error('no_order', 'No order found', 404);
+//    }
+
+    // Call function to create a new order
+    $response = pt_hms_create_new_order_bulk($orderData);
+
+    if (is_wp_error($response)) {
+        wp_send_json_error($response->get_error_message(), $response->get_error_code());
+    }
+
+    // add consignment_id to order meta
+//    update_post_meta($orderId, 'ptc_consignment_id', $response['data']['consignment_id']);
+//    update_post_meta($orderId, 'ptc_status', 'pending');
+//    update_post_meta($orderId, 'ptc_delivery_fee', $response['data']['delivery_fee']);
+
+    // Send the response back to JavaScript
+    wp_send_json($response);
+}
+
+
 
 function ajax_pt_wc_order_details()
 {
@@ -215,7 +278,7 @@ function register_custom_endpoint() {
 
                 return true;
             }
-
+            return false;
         },
     ));
 }

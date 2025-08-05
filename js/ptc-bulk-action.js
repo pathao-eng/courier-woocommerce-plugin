@@ -2,6 +2,26 @@ jQuery(document).ready(function($) {
 
     let hotInstance;
 
+
+    function createBulkOrder(orders) {
+        return $.post({
+            url: ajaxurl,
+            headers: {
+                'X-WPTC-Nonce': ptcSettings.nonce
+            },
+            data: {
+                action: "create_bulk_order_to_ptc",
+                orders: orders
+            },
+            success: function (response) {
+                console.log(response.data)
+            },
+            error: function (response) {
+                console.log(response.data)
+            }
+        });
+    }
+
     function getStores() {
         return new Promise((resolve, reject) => {
             $.post(ajaxurl, { action: 'get_stores' })
@@ -32,7 +52,6 @@ jQuery(document).ready(function($) {
                 .fail(err => reject(err));
         });
     }
-
 
     function getDeliveryTypes() {
         return [
@@ -238,15 +257,16 @@ jQuery(document).ready(function($) {
                 // $('#custom-modal-overlay').fadeOut();
                 // form.off('submit').submit();
 
-                const data = hotInstance?.getSourceData().map(data => {
+                const data = hotInstance?.getSourceData().map(item => {
 
-                    data.store_id = storesWithID[data.store_id]
-                    data.delivery_type = deliveryTypesWithID[data.delivery_type]
-                    data.item_type = itemTypesWithID[data.item_type]
+                    item.store_id = storesWithID[item.store_id]
+                    item.delivery_type = deliveryTypesWithID[item.delivery_type]
+                    item.item_type = itemTypesWithID[item.item_type]
 
-                    return data
+                    return item
                 });
-                console.log('Handsontable Data:', data);
+
+                console.log('Handsontable Data:', createBulkOrder(data));
             });
 
             $('#modal-cancel').off('click').on('click', function() {
