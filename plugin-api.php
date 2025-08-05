@@ -10,6 +10,28 @@ add_action('wp_ajax_create_bulk_order_to_ptc', 'ajax_pt_hms_create_new_order_bul
 add_action('wp_ajax_get_wc_order', 'ajax_pt_wc_order_details');
 add_action('wp_ajax_get_wc_order_bulk', 'ajax_pt_wc_order_details_bulk');
 
+$orderEvents = [
+    'order.created' => 'Order_Created',
+    'order.updated' => 'Order_Updated',
+    'order.pickup-requested' => 'Pickup_Requested',
+    'order.assigned-for-pickup' => 'Assigned_for_Pickup',
+    'order.picked' => 'Picked',
+    'order.pickup-failed' => 'Pickup_Failed',
+    'order.pickup-cancelled' => 'Pickup_Cancelled',
+    'order.at-the-sorting-hub' => 'At_the_Sorting_HUB',
+    'order.in-transit' => 'In_Transit',
+    'order.received-at-last-mile-hub' => 'Received_at_Last_Mile_HUB',
+    'order.assigned-for-delivery' => 'Assigned_for_Delivery',
+    'order.delivered' => 'Delivered',
+    'order.partial-delivery' => 'Partial_Delivery',
+    'order.returned' => 'Return',
+    'order.delivery-failed' => 'Delivery_Failed',
+    'order.on-hold' => 'On_Hold',
+    'order.paid-return' => 'paid_return',
+    'order.exchanged' => 'exchange',
+    'order.paid' => 'Payment_Invoice',
+];
+
 function ptc_order_list_column_values_callback($value, $column_name, $post_meta)
 {
     $value = $post_meta[$column_name] ?? $value;
@@ -291,18 +313,33 @@ function ptc_webhook_handler($data) {
         return webhookResponse('Successfully accepted webhook_integration', 202);
     }
 
-    $orderId = $data['merchant_order_id'];
-    $status = $data['order_status'];
-    $deliveryFee = $data['delivery_fee'];
+    $orderId = $data['merchant_order_id'] ?? null;
+    $status = $data['order_status'] ?? null;
+    $event = $data['event'] ?? null;
+    $deliveryFee = $data['delivery_fee'] ?? null;
+    $consignmentID = $data['consignment_id'] ?? null;
+
+    if (!$status) {
+        $status = $orderEvents[$event] ?? null;
+    }
+
     $order = wc_get_order($orderId);
 
     if (!$order) {
         wp_send_json_error('no_order', 'No order found', 404);
     }
 
-    // add consignment_id to order meta
-    update_post_meta($orderId, 'ptc_status', $status);
-    update_post_meta($orderId, 'ptc_delivery_fee', $deliveryFee);
+    if ($status) {
+        update_post_meta($orderId, 'ptc_status', $status);
+    }
+
+    if ($deliveryFee) {
+        update_post_meta($orderId, 'ptc_delivery_fee', $deliveryFee);
+    }
+
+    if ($consignmentID) {
+        update_post_meta($orderId, 'ptc_consignment_id', $consignmentID);
+    }
 
     return webhookResponse('Order status updated', 202);
 }
