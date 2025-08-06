@@ -639,6 +639,143 @@ $siteUrl = get_site_url();
     </div>
 </div>
 
+<!-- Bulk Send Spreadsheet Modal -->
+<div id="ptc-bulk-send-modal" class="ptc-modal ptc-bulk-modal">
+    <div class="ptc-modal-content ptc-bulk-content">
+        <div class="ptc-modal-header">
+            <div class="ptc-modal-title">
+                <span class="dashicons dashicons-airplane"></span>
+                <h2>Bulk Send to Pathao - <span id="ptc-bulk-count">0</span> Orders</h2>
+            </div>
+            <button class="ptc-modal-close" title="Close (ESC)">&times;</button>
+        </div>
+        
+        <!-- Bulk Operations Toolbar -->
+        <div class="ptc-bulk-toolbar">
+            <div class="ptc-toolbar-left">
+                <div class="ptc-toolbar-group">
+                    <button class="button ptc-select-all-rows" title="Select All">
+                        <span class="dashicons dashicons-yes"></span> Select All
+                    </button>
+                    <button class="button ptc-deselect-all-rows" title="Deselect All">
+                        <span class="dashicons dashicons-dismiss"></span> Deselect All
+                    </button>
+                </div>
+                
+                <div class="ptc-toolbar-separator"></div>
+                
+                <div class="ptc-toolbar-group">
+                    <label for="ptc-bulk-delivery-type">Delivery Type:</label>
+                    <select id="ptc-bulk-delivery-type" class="ptc-bulk-selector">
+                        <option value="">- Apply to Selected -</option>
+                        <option value="48">Regular (48h)</option>
+                        <option value="24">Express (24h)</option>
+                        <option value="12">Same Day (12h)</option>
+                    </select>
+                    
+                    <label for="ptc-bulk-payment-method">Payment:</label>
+                    <select id="ptc-bulk-payment-method" class="ptc-bulk-selector">
+                        <option value="">- Apply to Selected -</option>
+                        <option value="cod">Cash on Delivery</option>
+                        <option value="prepaid">Prepaid</option>
+                    </select>
+                    
+                    <button class="button ptc-auto-calculate-weight" title="Auto-calculate weights">
+                        <span class="dashicons dashicons-calculator"></span> Auto Weight
+                    </button>
+                </div>
+            </div>
+            
+            <div class="ptc-toolbar-right">
+                <div class="ptc-validation-summary">
+                    <span class="ptc-valid-count">0 Valid</span>
+                    <span class="ptc-invalid-count">0 Invalid</span>
+                </div>
+                <button class="button ptc-validate-all" title="Validate All Rows">
+                    <span class="dashicons dashicons-yes-alt"></span> Validate All
+                </button>
+            </div>
+        </div>
+        
+        <div class="ptc-modal-body ptc-bulk-body">
+            <!-- Spreadsheet Table -->
+            <div class="ptc-bulk-table-container">
+                <table class="ptc-bulk-table" id="ptc-bulk-orders-table">
+                    <thead>
+                        <tr>
+                            <th class="ptc-col-select">
+                                <input type="checkbox" id="ptc-bulk-select-all" title="Select All">
+                            </th>
+                            <th class="ptc-col-order">Order ID</th>
+                            <th class="ptc-col-amount">Amount</th>
+                            <th class="ptc-col-customer">Customer Name</th>
+                            <th class="ptc-col-phone">Phone</th>
+                            <th class="ptc-col-address">Address</th>
+                            <th class="ptc-col-city">City</th>
+                            <th class="ptc-col-zone">Zone</th>
+                            <th class="ptc-col-area">Area</th>
+                            <th class="ptc-col-items">Item Description</th>
+                            <th class="ptc-col-weight">Weight (kg)</th>
+                            <th class="ptc-col-quantity">Qty</th>
+                            <th class="ptc-col-delivery">Delivery Type</th>
+                            <th class="ptc-col-payment">Payment Method</th>
+                            <th class="ptc-col-instructions">Special Instructions</th>
+                            <th class="ptc-col-status">Status</th>
+                            <th class="ptc-col-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ptc-bulk-orders-body">
+                        <!-- Rows will be populated via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Loading State -->
+            <div class="ptc-bulk-loading" id="ptc-bulk-loading" style="display: none;">
+                <div class="ptc-spinner"></div>
+                <p>Loading order details...</p>
+            </div>
+            
+            <!-- Empty State -->
+            <div class="ptc-bulk-empty" id="ptc-bulk-empty" style="display: none;">
+                <span class="dashicons dashicons-cart"></span>
+                <h3>No Orders Selected</h3>
+                <p>Select orders from the main table to bulk send to Pathao.</p>
+            </div>
+            
+            <!-- Processing Progress -->
+            <div class="ptc-bulk-progress" id="ptc-bulk-progress" style="display: none;">
+                <h3>Processing Orders...</h3>
+                <div class="ptc-progress-bar">
+                    <div class="ptc-progress-fill" id="ptc-progress-fill"></div>
+                </div>
+                <div class="ptc-progress-text">
+                    <span id="ptc-progress-current">0</span> of <span id="ptc-progress-total">0</span> orders processed
+                    <span class="ptc-progress-status" id="ptc-progress-status">Starting...</span>
+                </div>
+                <button class="button ptc-cancel-processing" id="ptc-cancel-processing">Cancel</button>
+            </div>
+        </div>
+        
+        <div class="ptc-modal-footer ptc-bulk-footer">
+            <div class="ptc-footer-left">
+                <div class="ptc-bulk-summary">
+                    <span id="ptc-selected-summary">0 orders selected</span>
+                    <span class="ptc-separator">•</span>
+                    <span id="ptc-validation-summary">0 ready to send</span>
+                </div>
+            </div>
+            <div class="ptc-footer-right">
+                <button type="button" class="button ptc-btn-cancel">Cancel</button>
+                <button type="button" class="button ptc-save-draft">Save Draft</button>
+                <button type="button" class="button button-primary ptc-bulk-submit" disabled>
+                    <span class="dashicons dashicons-airplane"></span> Send Selected to Pathao
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Quick View Modal -->
 <div id="ptc-quick-view-modal" class="ptc-modal">
     <div class="ptc-modal-content ptc-quick-view-content">
