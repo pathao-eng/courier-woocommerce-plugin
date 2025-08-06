@@ -274,14 +274,20 @@ function pt_hms_orders_page()
 // Callback function to display the content of the submenu page
 function pt_hms_pathao_courier_page_callback()
 {
+    // Enqueue enhanced styles and scripts
+    wp_enqueue_style('ptc-enhanced-admin', PTC_PLUGIN_URL . 'css/ptc-enhanced-admin.css');
+    wp_enqueue_script('ptc-enhanced-admin', PTC_PLUGIN_URL . 'js/ptc-enhanced-admin.js', array('jquery'), '1.0.0', true);
+    
+    // Localize script for AJAX
+    wp_localize_script('ptc-enhanced-admin', 'ptc_ajax', array(
+        'ajax_url' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('ptc_ajax_nonce')
+    ));
+
     echo '<div class="wrap">';
-    echo '<h2>Pathao Courier Order Page</h2>';
-    echo '<p>Manage your deliveries without any distraction</p>';
-
     ob_start();
-    include_once PTC_PLUGIN_TEMPLATE_DIR . 'ptc-hms-list-template.php';
+    include_once PTC_PLUGIN_TEMPLATE_DIR . 'ptc-enhanced-orders-template.php';
     echo ob_get_clean();
-
     echo '</div>';
 }
 
