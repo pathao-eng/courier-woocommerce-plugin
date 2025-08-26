@@ -253,10 +253,7 @@ jQuery(document).ready(function($) {
 
             $('#ptc-bulk-modal-overlay').fadeIn();
 
-            $('#modal-confirm').off('click').on('click', function() {
-                // $('#custom-modal-overlay').fadeOut();
-                // form.off('submit').submit();
-
+            $('#modal-confirm').off('click').on('click', async function() {
                 const data = hotInstance?.getSourceData().map(item => {
 
                     item.store_id = storesWithID[item.store_id]
@@ -266,7 +263,9 @@ jQuery(document).ready(function($) {
                     return item
                 });
 
-                console.log('Handsontable Data:', createBulkOrder(data));
+                await createBulkOrder(data);
+                hotInstance?.destroy();
+                $('#ptc-bulk-modal-overlay').fadeOut();
             });
 
             $('#modal-cancel').off('click').on('click', function() {

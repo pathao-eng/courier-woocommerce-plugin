@@ -201,19 +201,19 @@ function pt_hms_create_new_order($order_data)
 function makeDto($order_data): array
 {
     $payload = [
-        'store_id' => sanitize_text_field($order_data['store_id']),
-        'merchant_order_id' => sanitize_text_field($order_data['merchant_order_id']),
-        'recipient_name' => sanitize_text_field($order_data['recipient_name']),
-        'recipient_phone' => sanitize_text_field($order_data['recipient_phone']),
-        'recipient_secondary_phone' => sanitize_text_field($order_data['recipient_secondary_phone']),
-        'recipient_address' => sanitize_text_field($order_data['recipient_address']),
-        'delivery_type' => sanitize_text_field($order_data['delivery_type']),
-        'item_type' => sanitize_text_field($order_data['item_type']),
-        'special_instruction' => sanitize_text_field($order_data['special_instruction']),
-        'item_quantity' => sanitize_text_field($order_data['item_quantity']),
-        'item_weight' => sanitize_text_field($order_data['item_weight']),
-        'amount_to_collect' => round(sanitize_text_field($order_data['amount_to_collect'])),
-        'item_description' => sanitize_text_field($order_data['item_description'])
+        'store_id' => sanitize_text_field($order_data['store_id'] ?? 0),
+        'merchant_order_id' => sanitize_text_field($order_data['merchant_order_id'] ?? ''),
+        'recipient_name' => sanitize_text_field($order_data['recipient_name'] ?? ''),
+        'recipient_phone' => sanitize_text_field($order_data['recipient_phone'] ?? ''),
+        'recipient_secondary_phone' => sanitize_text_field($order_data['recipient_secondary_phone'] ?? ''),
+        'recipient_address' => sanitize_text_field($order_data['recipient_address'] ?? ''),
+        'delivery_type' => sanitize_text_field($order_data['delivery_type'] ?? 0),
+        'item_type' => sanitize_text_field($order_data['item_type'] ?? 0),
+        'special_instruction' => sanitize_text_field($order_data['special_instruction'] ?? ''),
+        'item_quantity' => sanitize_text_field($order_data['item_quantity'] ?? 0),
+        'item_weight' => sanitize_text_field($order_data['item_weight'] ?? 0),
+        'amount_to_collect' => round(sanitize_text_field($order_data['amount_to_collect'] ?? 0)),
+        'item_description' => sanitize_text_field($order_data['item_description'] ?? '')
     ];
 
 
