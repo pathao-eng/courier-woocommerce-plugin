@@ -1,4 +1,4 @@
-jQuery(document).ready(function($) {
+jQuery(document).ready(function ($) {
 
     let hotInstance;
 
@@ -24,7 +24,7 @@ jQuery(document).ready(function($) {
 
     function getStores() {
         return new Promise((resolve, reject) => {
-            $.post(ajaxurl, { action: 'get_stores' })
+            $.post(ajaxurl, {action: 'get_stores'})
                 .done(response => {
                     const stores = response?.data.map(store => ({
                         id: store.store_id,
@@ -55,9 +55,9 @@ jQuery(document).ready(function($) {
 
     function getDeliveryTypes() {
         return [
-            { id: 48, name: "Normal Delivery", selected: true },
-            { id: 12, name: "On Demand", selected: false },
-            { id: 24, name: "Express Delivery", selected: false }
+            {id: 48, name: "Normal Delivery", selected: true},
+            {id: 12, name: "On Demand", selected: false},
+            {id: 24, name: "Express Delivery", selected: false}
         ];
     }
 
@@ -100,9 +100,9 @@ jQuery(document).ready(function($) {
 
     function getItemTypes() {
         return [
-            { id: 2, name: "Parcel"},
-            { id: 1, name: "Document", selected: false },
-            { id: 3, name: "Fragile", selected: false }
+            {id: 2, name: "Parcel"},
+            {id: 1, name: "Document", selected: false},
+            {id: 3, name: "Fragile", selected: false}
         ];
     }
 
@@ -139,14 +139,14 @@ jQuery(document).ready(function($) {
         hotInstance = new Handsontable(container, {
             data: data,
             columns: [
-                { data: 'merchant_order_id', readOnly: true },
-                { data: 'recipient_name', type: 'text' },
-                { data: 'recipient_phone', type: 'text' },
-                { data: 'recipient_secondary_phone', type: 'text' },
-                { data: 'recipient_address', type: 'text' },
-                { data: 'amount_to_collect', type: 'numeric' },
-                { data: 'item_description', type: 'text' },
-                { data: 'special_instruction', type: 'text' },
+                {data: 'merchant_order_id', readOnly: true},
+                {data: 'recipient_name', type: 'text'},
+                {data: 'recipient_phone', type: 'text'},
+                {data: 'recipient_secondary_phone', type: 'text'},
+                {data: 'recipient_address', type: 'text'},
+                {data: 'amount_to_collect', type: 'numeric'},
+                {data: 'item_description', type: 'text'},
+                {data: 'special_instruction', type: 'text'},
                 {
                     data: 'store_id',
                     type: 'dropdown',
@@ -233,15 +233,28 @@ jQuery(document).ready(function($) {
         }
     });
 
+    $(document).on('click', '#post-send_with_pathao_bulk', function (e) {
+        e.preventDefault();
+        openModal()
+    });
+
     form.on('click', 'input[type="submit"][name="bulk_action"], button[type="submit"][name="bulk_action"]', function(e) {
 
-        const action = $('select[name="action"]').val() || $('select[name="action2"]').val();
+            const action = $('select[name="action"]').val() || $('select[name="action2"]').val();
 
-        if (action === 'send_with_pathao') {
-            e.preventDefault();
+            if (action === 'send_with_pathao') {
+                e.preventDefault();
 
+                openModal()
+            }
+        });
+
+
+        function openModal() {
             const selectedOrders = $('input[name="id[]"]:checked')
-                .map(function() { return $(this).val(); })
+                .map(function () {
+                    return $(this).val();
+                })
                 .get();
 
             if (selectedOrders.length === 0) {
@@ -253,7 +266,7 @@ jQuery(document).ready(function($) {
 
             $('#ptc-bulk-modal-overlay').fadeIn();
 
-            $('#modal-confirm').off('click').on('click', async function() {
+            $('#modal-confirm').off('click').on('click', async function () {
                 const data = hotInstance?.getSourceData().map(item => {
 
                     item.store_id = storesWithID[item.store_id]
@@ -268,11 +281,10 @@ jQuery(document).ready(function($) {
                 $('#ptc-bulk-modal-overlay').fadeOut();
             });
 
-            $('#modal-cancel').off('click').on('click', function() {
+            $('#modal-cancel').off('click').on('click', function () {
                 hotInstance?.destroy();
                 $('#ptc-bulk-modal-overlay').fadeOut();
             });
         }
-        submitter = null;
-    });
+
 });

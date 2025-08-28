@@ -138,6 +138,7 @@ $search = $_GET['search'] ?? '';
             <label for="limit" class="limit">Number of items per page</label>
             <input type="number" id="limit" name="limit" value="<?php echo $limit; ?>" class="ptc-limit" min="<?php echo $minimumLimit; ?>" max="<?php echo $maximumLimit; ?>">
             <input type="submit" name="filter_action" id="post-query-submit" class="button" value="Filter">
+            <input type="submit" name="send_with_pathao_bulk" id="post-send_with_pathao_bulk" class="button" value="Send with pathao">
             <input type="submit" name="filter_action_reset" id="post-query-submit" class="button" value="Clear Filter">
         </div>
         <div class="tablenav-pages one-page">
@@ -192,7 +193,7 @@ $search = $_GET['search'] ?? '';
 
             <tr id="post-33" class="author-self level-0 post-<?php echo $orderId ?> type-shop_order">
                 <th scope="row" class="check-column">
-                    <input id="cb-select-<?php echo $orderId ?>" type="checkbox" name="post[]" value="<?php echo $orderId ?>">
+                    <input id="cb-select-<?php echo $orderId ?>" type="checkbox" name="id[]" value="<?php echo $orderId ?>">
                 </th>
 
                 <?php foreach ($columns as $key => $column): ?>
