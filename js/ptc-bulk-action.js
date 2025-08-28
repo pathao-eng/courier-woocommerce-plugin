@@ -1,7 +1,12 @@
 jQuery(document).ready(function ($) {
 
     let hotInstance;
+    const list = $("#ptc-response-list");
+    const loading = $("#ptc-loading-img");
+    const modal = $("#ptc-bulk-modal-overlay");
+
     function createBulkOrder(orders) {
+        loading.fadeIn()
         return $.post({
             url: ajaxurl,
             headers: {
@@ -12,10 +17,32 @@ jQuery(document).ready(function ($) {
                 orders: orders
             },
             success: function (response) {
-                console.log(response.data)
+                loading.fadeOut()
+                const message = response.message
+                list.empty();
+                list.append(`<li style='color: #00a32a'>${message}</li>`)
+
+
+                setTimeout(() => {
+                    hotInstance?.destroy();
+                    $('#ptc-bulk-modal-overlay').fadeOut();
+                }, 2000);
             },
-            error: function (response) {
-                console.log(response.data)
+            error: function (xhr, status, errorThrown) {
+                loading.fadeOut()
+                const res = xhr.responseJSON || {};
+                const errors = res.data?.errors || res.errors || {};
+                list.empty();
+
+                // Show each error in the UL
+                Object.entries(errors).forEach(([path, msgs]) => {
+                    const msg = Array.isArray(msgs) ? msgs.join(", ") : String(msgs);
+                    list.append(`<li style="color:#d33">${msg}</li>`);
+                });
+
+                if (!Object.keys(errors).length) {
+                    list.append(`<li style="color:#d33">Unexpected error: ${errText || 'Unknown'}</li>`);
+                }
             }
         });
     }
@@ -234,7 +261,7 @@ jQuery(document).ready(function ($) {
 
         async function openModal() {
 
-            $('#ptc-loading-img').fadeIn()
+            loading.fadeIn()
 
             const selectedOrders = $('input[name="id[]"]:checked')
                 .map(function () {
@@ -247,11 +274,11 @@ jQuery(document).ready(function ($) {
                 return;
             }
 
-            $('#ptc-bulk-modal-overlay').fadeIn();
+            modal.fadeIn();
 
             await renderHandsontable(selectedOrders)
 
-            $("#ptc-loading-img").fadeOut()
+            loading.fadeOut()
 
             $('#modal-confirm').off('click').on('click', async function () {
                 const data = hotInstance?.getSourceData().map(item => {
@@ -264,13 +291,11 @@ jQuery(document).ready(function ($) {
                 });
 
                 await createBulkOrder(data);
-                hotInstance?.destroy();
-                $('#ptc-bulk-modal-overlay').fadeOut();
             });
 
             $('#modal-cancel').off('click').on('click', function () {
                 hotInstance?.destroy();
-                $('#ptc-bulk-modal-overlay').fadeOut();
+                modal.fadeOut();
             });
         }
 

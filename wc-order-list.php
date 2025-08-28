@@ -202,6 +202,7 @@ function ptc_render_bulk_modal_content()
                 
                 <h2 class="wp-heading-inline ">Send with Pathao</h2>
                 <div id="hot-container" style="margin: 50px auto; max-width:960px;"></div>
+                 <ul id="ptc-response-list"></ul>
                  <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img"
                      alt="Pathao Courier Logo" 
                      style="height: 200px; display: none; ">
