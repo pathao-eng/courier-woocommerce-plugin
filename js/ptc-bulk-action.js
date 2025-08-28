@@ -1,8 +1,6 @@
 jQuery(document).ready(function ($) {
 
     let hotInstance;
-
-
     function createBulkOrder(orders) {
         return $.post({
             url: ajaxurl,
@@ -210,22 +208,6 @@ jQuery(document).ready(function ($) {
 
     const form = $('#wc-orders-filter');
 
-    $('body').append(`
-        <div id="ptc-bulk-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.5); z-index: 10000;">
-             <div class="ptc-modal-bulk-order">
-                <h2 class="wp-heading-inline ">Send with Pathao</h2>
-                <div id="hot-container" style="margin: 50px auto; max-width:960px;"></div>
-                
-                 <div style="margin-top:15px; text-align:right;">
-                    <button type="button" id="modal-cancel" class="button">Cancel</button>
-                    <button type="button" id="modal-confirm" class="button button-primary">Confirm</button>
-                </div>
-            </div>
-           
-        </div>
-    `);
-
     $(document).on('click', '#ptc-bulk-modal-overlay', function (e) {
         if (e.target === this) {
             $(this).fadeOut();
@@ -250,7 +232,10 @@ jQuery(document).ready(function ($) {
         });
 
 
-        function openModal() {
+        async function openModal() {
+
+            $('#ptc-loading-img').fadeIn()
+
             const selectedOrders = $('input[name="id[]"]:checked')
                 .map(function () {
                     return $(this).val();
@@ -262,9 +247,11 @@ jQuery(document).ready(function ($) {
                 return;
             }
 
-            renderHandsontable(selectedOrders)
-
             $('#ptc-bulk-modal-overlay').fadeIn();
+
+            await renderHandsontable(selectedOrders)
+
+            $("#ptc-loading-img").fadeOut()
 
             $('#modal-confirm').off('click').on('click', async function () {
                 const data = hotInstance?.getSourceData().map(item => {

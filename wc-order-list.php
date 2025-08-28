@@ -188,3 +188,30 @@ function ptc_render_store_modal_content()
 }
 
 add_action('admin_enqueue_scripts', 'ptc_render_store_modal_content');
+
+function ptc_render_bulk_modal_content()
+{
+    echo
+        '<div id="ptc-bulk-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.5); z-index: 10000;">
+             <div class="ptc-modal-bulk-order">
+             
+                <img src="'. PTC_PLUGIN_URL . 'assets/images/courier-logo.svg'.'" 
+                     alt="Pathao Courier Logo" 
+                     style="height: 35px;">
+                
+                <h2 class="wp-heading-inline ">Send with Pathao</h2>
+                <div id="hot-container" style="margin: 50px auto; max-width:960px;"></div>
+                 <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img"
+                     alt="Pathao Courier Logo" 
+                     style="height: 200px; display: none; ">
+                 <div style="margin-top:15px; text-align:right;">
+                    <button type="button" id="modal-cancel" class="button">Cancel</button>
+                    <button type="button" id="modal-confirm" class="button button-primary">Confirm</button>
+                </div>
+            </div>
+           
+        </div>';
+}
+
+add_action('admin_enqueue_scripts', 'ptc_render_bulk_modal_content');
