@@ -166,20 +166,54 @@ function pt_hms_create_new_order($order_data)
     $api_url = get_base_url() . '/aladdin/api/v1/orders';
     $token = pt_hms_get_token();
 
+    $payload = makeDto($order_data);
+
+    $args = array(
+        'headers' => array(
+            'Authorization' => 'Bearer ' . $token,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'source' => 'woocommerce'
+        ),
+        'body' => json_encode($payload)
+    );
+
+    $response = wp_remote_post($api_url, $args);
+
+    // status code 201 means created
+    if (wp_remote_retrieve_response_code($response) >= 300) {
+        wp_send_json_error(json_decode(wp_remote_retrieve_body($response), true), wp_remote_retrieve_response_code($response));
+    }
+
+    if (is_wp_error($response)) {
+        return $response->get_error_message();
+    }
+
+    $body = wp_remote_retrieve_body($response);
+
+    return json_decode($body, true);
+}
+
+/**
+ * @param $order_data
+ * @return array
+ */
+function makeDto($order_data): array
+{
+
     $payload = [
-        'store_id' => sanitize_text_field($order_data['store_id']),
-        'merchant_order_id' => sanitize_text_field($order_data['merchant_order_id']),
-        'recipient_name' => sanitize_text_field($order_data['recipient_name']),
-        'recipient_phone' => sanitize_text_field($order_data['recipient_phone']),
-        'recipient_secondary_phone' => sanitize_text_field($order_data['recipient_secondary_phone']),
-        'recipient_address' => sanitize_text_field($order_data['recipient_address']),
-        'delivery_type' => sanitize_text_field($order_data['delivery_type']),
-        'item_type' => sanitize_text_field($order_data['item_type']),
-        'special_instruction' => sanitize_text_field($order_data['special_instruction']),
-        'item_quantity' => sanitize_text_field($order_data['item_quantity']),
-        'item_weight' => sanitize_text_field($order_data['item_weight']),
-        'amount_to_collect' => round(sanitize_text_field($order_data['amount_to_collect'])),
-        'item_description' => sanitize_text_field($order_data['item_description'])
+        'store_id' => sanitize_text_field($order_data['store_id'] ?? 0),
+        'merchant_order_id' => sanitize_text_field($order_data['merchant_order_id'] ?? ''),
+        'recipient_name' => sanitize_text_field($order_data['recipient_name'] ?? ''),
+        'recipient_phone' => sanitize_text_field($order_data['recipient_phone'] ?? ''),
+        'recipient_secondary_phone' => sanitize_text_field($order_data['recipient_secondary_phone'] ?? ''),
+        'recipient_address' => sanitize_text_field($order_data['recipient_address'] ?? ''),
+        'delivery_type' => sanitize_text_field($order_data['delivery_type'] ?? 0),
+        'item_type' => sanitize_text_field($order_data['item_type'] ?? 0),
+        'special_instruction' => sanitize_text_field($order_data['special_instruction'] ?? ''),
+        'item_quantity' => sanitize_text_field($order_data['item_quantity'] ?? 0),
+        'item_weight' => (float)sanitize_text_field($order_data['item_weight'] ?? 0),
+        'item_description' => sanitize_text_field($order_data['item_description'] ?? '')
     ];
 
 
@@ -194,6 +228,22 @@ function pt_hms_create_new_order($order_data)
     if (!empty($order_data['recipient_area'])) {
         $payload['recipient_area'] = (int)sanitize_text_field($order_data['recipient_area']);
     }
+
+    if ($order_data['amount_to_collect'] !== "") {
+        $payload['amount_to_collect'] =  (int)sanitize_text_field($order_data['amount_to_collect']);
+    }
+
+    return $payload;
+}
+
+function pt_hms_create_new_order_bulk($order_data)
+{
+    $api_url = get_base_url() . '/aladdin/api/v1/orders/bulk';
+    $token = pt_hms_get_token();
+
+    $payload = [
+        'orders' => $order_data
+    ];
 
     $args = array(
         'headers' => array(

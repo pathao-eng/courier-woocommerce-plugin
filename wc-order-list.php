@@ -21,9 +21,9 @@ function initialize_admin_columns()
 
 function ptc_add_column_to_order_list($columns)
 {
-    $columns['pathao'] = __('Pathao Courier', 'textdomain');
-    $columns['pathao_status'] = __('Pathao Courier Status', 'textdomain');
-    $columns['pathao_delivery_fee'] = __('Pathao Courier Delivery Fee', 'textdomain');
+    $columns['pathao'] = __('Pathao Courier', 'pathao_text_domain');
+    $columns['pathao_status'] = __('Pathao Courier Status', 'pathao_text_domain');
+    $columns['pathao_delivery_fee'] = __('Pathao Courier Delivery Fee', 'pathao_text_domain');
     return $columns;
 }
 
@@ -55,16 +55,22 @@ function ptc_render_store_modal_button($post_id)
 {
     $consignmentId = get_post_meta($post_id, 'ptc_consignment_id', true);
 
-    $button = sprintf('<button class="ptc-open-modal-button" data-order-id="%s">%s</button>', $post_id, __('Send with Pathao', 'textdomain'));
+    $button = sprintf('<button class="ptc-open-modal-button" data-order-id="%s">%s</button>', $post_id, __('Send with Pathao', 'pathao_text_domain'));
 
     if ($consignmentId) {
 
-        return sprintf('<a href="%s" class="order-view" target="_blank">
+        if ($consignmentId !== PTC_EMPTY_FLAG) {
+            return sprintf('<a href="%s" class="order-view" target="_blank">
                                     %s
                               </a>',
-            get_ptc_merchant_panel_base_url() . '/courier/orders/' . $consignmentId,
-            $consignmentId
-        );
+                get_ptc_merchant_panel_base_url() . '/courier/orders/' . $consignmentId,
+                $consignmentId
+            );
+        } else {
+            return '---';
+        }
+
+
     }
 
     return sprintf('<span class="ptc-assign-area">' . $button . '</span>', $post_id);
@@ -188,3 +194,31 @@ function ptc_render_store_modal_content()
 }
 
 add_action('admin_enqueue_scripts', 'ptc_render_store_modal_content');
+
+function ptc_render_bulk_modal_content()
+{
+    echo
+        '<div id="ptc-bulk-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.5); z-index: 10000;">
+             <div class="ptc-modal-bulk-order">
+             
+                <img src="'. PTC_PLUGIN_URL . 'assets/images/courier-logo.svg'.'" 
+                     alt="Pathao Courier Logo" 
+                     style="height: 35px;">
+                
+                <h2 class="wp-heading-inline ">Send with Pathao</h2>
+                <div id="hot-container" style="margin: 50px auto; max-width:960px;"></div>
+                 <ul id="ptc-response-list"></ul>
+                 <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img"
+                     alt="Pathao Courier Logo" 
+                     style="height: 200px; display: none; ">
+                 <div style="margin-top:15px; text-align:right;">
+                    <button type="button" id="modal-cancel" class="button">Cancel</button>
+                    <button type="button" id="modal-confirm" class="button button-primary">Confirm</button>
+                </div>
+            </div>
+           
+        </div>';
+}
+
+add_action('admin_enqueue_scripts', 'ptc_render_bulk_modal_content');
