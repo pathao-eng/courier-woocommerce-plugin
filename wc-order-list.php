@@ -59,12 +59,18 @@ function ptc_render_store_modal_button($post_id)
 
     if ($consignmentId) {
 
-        return sprintf('<a href="%s" class="order-view" target="_blank">
+        if ($consignmentId !== PTC_EMPTY_FLAG) {
+            return sprintf('<a href="%s" class="order-view" target="_blank">
                                     %s
                               </a>',
-            get_ptc_merchant_panel_base_url() . '/courier/orders/' . $consignmentId,
-            $consignmentId
-        );
+                get_ptc_merchant_panel_base_url() . '/courier/orders/' . $consignmentId,
+                $consignmentId
+            );
+        } else {
+            return '---';
+        }
+
+
     }
 
     return sprintf('<span class="ptc-assign-area">' . $button . '</span>', $post_id);

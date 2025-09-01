@@ -185,6 +185,7 @@ $search = $_GET['search'] ?? '';
                 $customerName = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
                 $total = $order->get_total();
                 $consignmentId = get_post_meta($orderId, 'ptc_consignment_id', true); // because its cache by WordPress its wont create any query issue (https://wordpress.stackexchange.com/a/282538)
+                $status = get_post_meta($orderId, 'ptc_status', true);
                 $currencyCode = $order->get_currency();
                 $currencySymbol = get_woocommerce_currency_symbol($currencyCode);
                 $date = date("F jS, Y", strtotime($order->get_date_created()));
@@ -241,11 +242,20 @@ $search = $_GET['search'] ?? '';
                                 </td>
                             <?php else: ?>
                                 <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+
+                                    <?php if ($consignmentId !== PTC_EMPTY_FLAG ): ?>
+
                                     <span>
                                         <a href="<?php echo get_ptc_merchant_panel_base_url() . '/courier/orders/'. $consignmentId ; ?>" class="order-view" target="_blank">
                                              <?php echo $consignmentId; ?>
                                         </a>
                                     </span>
+                                    <?php else: ?>
+                                    <span>
+                                        ---
+                                    </span>
+
+                                    <?php endif; ?>
                                 </td>
                             <?php endif; ?>
 
@@ -254,7 +264,7 @@ $search = $_GET['search'] ?? '';
                         <?php case 'pathao_status': ?>
                             <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                                 <span id="<?php echo $orderId ?>">
-                                   <?php echo ucfirst(get_post_meta($orderId, 'ptc_status', true)); ?>
+                                   <?php echo ucfirst($status); ?>
                                 </span>
                             </td>
                         <?php break; ?>

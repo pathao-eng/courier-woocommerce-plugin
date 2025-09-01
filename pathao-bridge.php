@@ -211,8 +211,8 @@ function makeDto($order_data): array
         'item_type' => sanitize_text_field($order_data['item_type'] ?? 0),
         'special_instruction' => sanitize_text_field($order_data['special_instruction'] ?? ''),
         'item_quantity' => sanitize_text_field($order_data['item_quantity'] ?? 0),
-        'item_weight' => sanitize_text_field($order_data['item_weight'] ?? 0),
-        'amount_to_collect' => round(sanitize_text_field($order_data['amount_to_collect'] ?? 0)),
+        'item_weight' => (float)sanitize_text_field($order_data['item_weight'] ?? 0),
+        'amount_to_collect' => round((float)sanitize_text_field($order_data['amount_to_collect'] ?? 0)),
         'item_description' => sanitize_text_field($order_data['item_description'] ?? '')
     ];
 

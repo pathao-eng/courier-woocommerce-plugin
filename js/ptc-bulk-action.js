@@ -26,6 +26,7 @@ jQuery(document).ready(function ($) {
                 setTimeout(() => {
                     hotInstance?.destroy();
                     $('#ptc-bulk-modal-overlay').fadeOut();
+                    location.reload();
                 }, 2000);
             },
             error: function (xhr, status, errorThrown) {
@@ -244,6 +245,7 @@ jQuery(document).ready(function ($) {
 
     $(document).on('click', '#post-send_with_pathao_bulk', function (e) {
         e.preventDefault();
+        list.empty();
         openModal()
     });
 
@@ -253,6 +255,7 @@ jQuery(document).ready(function ($) {
 
             if (action === 'send_with_pathao') {
                 e.preventDefault();
+                list.empty();
 
                 openModal()
             }
@@ -295,6 +298,7 @@ jQuery(document).ready(function ($) {
 
             $('#modal-cancel').off('click').on('click', function () {
                 hotInstance?.destroy();
+                list.empty();
                 modal.fadeOut();
             });
         }

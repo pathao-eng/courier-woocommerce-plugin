@@ -173,6 +173,7 @@ function ajax_pt_hms_create_new_order_bulk()
         foreach ($orderData as $order) {
             $orderId = $order['merchant_order_id'];
             update_post_meta($orderId, 'ptc_status', 'pending');
+            update_post_meta($orderId, 'ptc_consignment_id', PTC_EMPTY_FLAG);
         }
     }
 
