@@ -272,7 +272,7 @@ jQuery(document).ready(function ($) {
         const cities = response.data;
 
         let options = '<option value="">Select city</option>';
-        cities.forEach(function (city) {
+        cities?.forEach(function (city) {
             options += `<option value="${city.city_id}">${city.city_name}</option>`;
         });
 

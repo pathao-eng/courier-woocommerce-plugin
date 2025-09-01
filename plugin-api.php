@@ -6,7 +6,31 @@ add_action('wp_ajax_get_cities', 'pt_hms_ajax_get_cities');
 add_action('wp_ajax_get_zones', 'pt_hms_ajax_get_zones');
 add_action('wp_ajax_get_areas', 'pt_hms_ajax_get_areas');
 add_action('wp_ajax_create_order_to_ptc', 'ajax_pt_hms_create_new_order');
+add_action('wp_ajax_create_bulk_order_to_ptc', 'ajax_pt_hms_create_new_order_bulk');
 add_action('wp_ajax_get_wc_order', 'ajax_pt_wc_order_details');
+add_action('wp_ajax_get_wc_order_bulk', 'ajax_pt_wc_order_details_bulk');
+
+$orderEventsStatusMap = [
+    'order.created' => 'Order_Created',
+    'order.updated' => 'Order_Updated',
+    'order.pickup-requested' => 'Pickup_Requested',
+    'order.assigned-for-pickup' => 'Assigned_for_Pickup',
+    'order.picked' => 'Picked',
+    'order.pickup-failed' => 'Pickup_Failed',
+    'order.pickup-cancelled' => 'Pickup_Cancelled',
+    'order.at-the-sorting-hub' => 'At_the_Sorting_HUB',
+    'order.in-transit' => 'In_Transit',
+    'order.received-at-last-mile-hub' => 'Received_at_Last_Mile_HUB',
+    'order.assigned-for-delivery' => 'Assigned_for_Delivery',
+    'order.delivered' => 'Delivered',
+    'order.partial-delivery' => 'Partial_Delivery',
+    'order.returned' => 'Return',
+    'order.delivery-failed' => 'Delivery_Failed',
+    'order.on-hold' => 'On_Hold',
+    'order.paid-return' => 'paid_return',
+    'order.exchanged' => 'exchange',
+    'order.paid' => 'Payment_Invoice',
+];
 
 function ptc_order_list_column_values_callback($value, $column_name, $post_meta)
 {
@@ -17,13 +41,13 @@ function ptc_order_list_column_values_callback($value, $column_name, $post_meta)
 function ptc_order_list_columns($columns = [])
 {
     return apply_filters('custom_table_columns', [
-            'order_number' => __('Order', 'textdomain'),
-            'date' => __('Date', 'textdomain'),
-            'status' => __('Status', 'textdomain'),
-            'total' => __('Total', 'textdomain'),
-            'pathao' => __('Pathao Courier', 'textdomain'),
-            'pathao_status' => __('Pathao Courier Status', 'textdomain'),
-            'pathao_delivery_fee' => __('Pathao Courier Delivery Fee', 'textdomain'),
+            'order_number' => __('Order', 'pathao_text_domain'),
+            'date' => __('Date', 'pathao_text_domain'),
+            'status' => __('Status', 'pathao_text_domain'),
+            'total' => __('Total', 'pathao_text_domain'),
+            'pathao' => __('Pathao Courier', 'pathao_text_domain'),
+            'pathao_status' => __('Pathao Courier Status', 'pathao_text_domain'),
+            'pathao_delivery_fee' => __('Pathao Courier Delivery Fee', 'pathao_text_domain'),
 
         ] + $columns);
 }
@@ -116,6 +140,46 @@ function ajax_pt_hms_create_new_order()
     wp_send_json($response);
 }
 
+function ajax_pt_hms_create_new_order_bulk()
+{
+    // Check nonce for security
+    $nonce = wp_verify_nonce( $_SERVER['HTTP_X_WPTC_NONCE'] ?? '', 'wp_rest', false );
+
+    if(!$nonce){
+
+        wp_send_json_error([
+            'error' => 'validation_failed',
+            'message' => 'nonce mismatch'
+        ], 403);
+    }
+
+
+    // sanitize input fields
+    $orderData = array_map(function ($order) {
+
+        if (!is_array($order)) {
+            wp_send_json_error("Invalid Data", 403);
+        }
+        return makeDto($order);
+
+    }, $_POST['orders'] ?? []);
+
+    // Call function to create a new order
+    $response = pt_hms_create_new_order_bulk($orderData);
+
+    if (is_wp_error($response)) {
+        wp_send_json_error($response->get_error_message(), $response->get_error_code());
+    } else {
+        foreach ($orderData as $order) {
+            $orderId = $order['merchant_order_id'];
+            update_post_meta($orderId, 'ptc_status', 'pending');
+            update_post_meta($orderId, 'ptc_consignment_id', PTC_EMPTY_FLAG);
+        }
+    }
+
+    // Send the response back to JavaScript
+    wp_send_json($response);
+}
 
 function ajax_pt_wc_order_details()
 {
@@ -132,11 +196,51 @@ function ajax_pt_wc_order_details()
         wp_send_json_error('no_order', 'No order found', 404);
     }
 
+    $orderData = getPtOrderData($order);
+
+    wp_send_json_success($orderData);
+}
+
+function ajax_pt_wc_order_details_bulk()
+{
+
+    $orderIds =  $_POST['order_id'] ?? null;
+
+    if (!$orderIds) {
+        wp_send_json_error('no_order_id', 'No order id found', 404);
+    }
+
+    $orderIds = explode(',', $orderIds);
+
+    $orderData = [];
+    foreach ($orderIds as $orderId) {
+        $order = wc_get_order($orderId);
+
+        if (!$order) {
+            continue;
+        }
+
+        if (metadata_exists('post', $order->get_id(), 'ptc_consignment_id')) {
+            continue;
+        }
+
+        $orderData[] = getPtOrderData($order);
+    }
+
+    wp_send_json_success($orderData);
+}
+
+/**
+ * @param bool|WC_Order|WC_Order_Refund $order
+ * @return array
+ */
+function getPtOrderData(bool|WC_Order|WC_Order_Refund $order): array
+{
     $orderData = $order->get_data();
     $orderItems = 0;
     $totalWeight = 0;
     // add items to order
-    $orderData['items'] = array_values(array_map(function($item) use (&$orderItems, &$totalWeight) {
+    $orderData['items'] = array_values(array_map(function ($item) use (&$orderItems, &$totalWeight) {
 
         $quantity = $item->get_quantity();
         $totalWeight += (float)$item->get_product()->get_weight();
@@ -157,12 +261,12 @@ function ajax_pt_wc_order_details()
     }, $order->get_items()));
 
     $orderData['billing']['full_name'] = $order->get_formatted_billing_full_name();
-    
+
     $orderData['total_items'] = $orderItems;
     $orderData['total_weight'] = $totalWeight;
     $orderData['payment_date'] = $order->get_date_paid();
 
-    wp_send_json_success($orderData);
+    return $orderData;
 }
 
 add_action('rest_api_init', 'register_custom_endpoint');
@@ -183,7 +287,7 @@ function register_custom_endpoint() {
 
                 return true;
             }
-
+            return false;
         },
     ));
 }
@@ -196,18 +300,33 @@ function ptc_webhook_handler($data) {
         return webhookResponse('Successfully accepted webhook_integration', 202);
     }
 
-    $orderId = $data['merchant_order_id'];
-    $status = $data['order_status'];
-    $deliveryFee = $data['delivery_fee'];
+    $orderId = $data['merchant_order_id'] ?? null;
+    $status = $data['order_status'] ?? null;
+    $event = $data['event'] ?? null;
+    $deliveryFee = $data['delivery_fee'] ?? null;
+    $consignmentID = $data['consignment_id'] ?? null;
+
+    if (!$status) {
+        $status = $orderEvents[$event] ?? null;
+    }
+
     $order = wc_get_order($orderId);
 
     if (!$order) {
         wp_send_json_error('no_order', 'No order found', 404);
     }
 
-    // add consignment_id to order meta
-    update_post_meta($orderId, 'ptc_status', $status);
-    update_post_meta($orderId, 'ptc_delivery_fee', $deliveryFee);
+    if ($status) {
+        update_post_meta($orderId, 'ptc_status', $status);
+    }
+
+    if ($deliveryFee) {
+        update_post_meta($orderId, 'ptc_delivery_fee', $deliveryFee);
+    }
+
+    if ($consignmentID) {
+        update_post_meta($orderId, 'ptc_consignment_id', $consignmentID);
+    }
 
     return webhookResponse('Order status updated', 202);
 }

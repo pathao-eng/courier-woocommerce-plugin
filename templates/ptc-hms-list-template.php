@@ -138,6 +138,7 @@ $search = $_GET['search'] ?? '';
             <label for="limit" class="limit">Number of items per page</label>
             <input type="number" id="limit" name="limit" value="<?php echo $limit; ?>" class="ptc-limit" min="<?php echo $minimumLimit; ?>" max="<?php echo $maximumLimit; ?>">
             <input type="submit" name="filter_action" id="post-query-submit" class="button" value="Filter">
+            <input type="submit" name="send_with_pathao_bulk" id="post-send_with_pathao_bulk" class="button" value="Send with pathao">
             <input type="submit" name="filter_action_reset" id="post-query-submit" class="button" value="Clear Filter">
         </div>
         <div class="tablenav-pages one-page">
@@ -184,6 +185,7 @@ $search = $_GET['search'] ?? '';
                 $customerName = $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
                 $total = $order->get_total();
                 $consignmentId = get_post_meta($orderId, 'ptc_consignment_id', true); // because its cache by WordPress its wont create any query issue (https://wordpress.stackexchange.com/a/282538)
+                $status = get_post_meta($orderId, 'ptc_status', true);
                 $currencyCode = $order->get_currency();
                 $currencySymbol = get_woocommerce_currency_symbol($currencyCode);
                 $date = date("F jS, Y", strtotime($order->get_date_created()));
@@ -192,7 +194,7 @@ $search = $_GET['search'] ?? '';
 
             <tr id="post-33" class="author-self level-0 post-<?php echo $orderId ?> type-shop_order">
                 <th scope="row" class="check-column">
-                    <input id="cb-select-<?php echo $orderId ?>" type="checkbox" name="post[]" value="<?php echo $orderId ?>">
+                    <input id="cb-select-<?php echo $orderId ?>" type="checkbox" name="id[]" value="<?php echo $orderId ?>">
                 </th>
 
                 <?php foreach ($columns as $key => $column): ?>
@@ -235,16 +237,25 @@ $search = $_GET['search'] ?? '';
                             <?php if (!$consignmentId): ?>
                                 <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                                     <button class="ptc-open-modal-button" data-order-id="<?php echo $orderId ?>">
-                                        <?php echo __('Send with Pathao', 'textdomain') ?>
+                                        <?php echo __('Send with Pathao', 'pathao_text_domain') ?>
                                     </button>
                                 </td>
                             <?php else: ?>
                                 <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
+
+                                    <?php if ($consignmentId !== PTC_EMPTY_FLAG ): ?>
+
                                     <span>
                                         <a href="<?php echo get_ptc_merchant_panel_base_url() . '/courier/orders/'. $consignmentId ; ?>" class="order-view" target="_blank">
                                              <?php echo $consignmentId; ?>
                                         </a>
                                     </span>
+                                    <?php else: ?>
+                                    <span>
+                                        ---
+                                    </span>
+
+                                    <?php endif; ?>
                                 </td>
                             <?php endif; ?>
 
@@ -253,7 +264,7 @@ $search = $_GET['search'] ?? '';
                         <?php case 'pathao_status': ?>
                             <td class="order_number column-order_number has-row-actions column-primary" data-colname="Order">
                                 <span id="<?php echo $orderId ?>">
-                                   <?php echo ucfirst(get_post_meta($orderId, 'ptc_status', true)); ?>
+                                   <?php echo ucfirst($status); ?>
                                 </span>
                             </td>
                         <?php break; ?>
