@@ -153,13 +153,13 @@ function ajax_pt_hms_create_new_order_bulk()
         ], 403);
     }
 
+
     // sanitize input fields
     $orderData = array_map(function ($order) {
 
         if (!is_array($order)) {
             wp_send_json_error("Invalid Data", 403);
         }
-
         return makeDto($order);
 
     }, $_POST['orders'] ?? []);

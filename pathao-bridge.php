@@ -200,6 +200,7 @@ function pt_hms_create_new_order($order_data)
  */
 function makeDto($order_data): array
 {
+
     $payload = [
         'store_id' => sanitize_text_field($order_data['store_id'] ?? 0),
         'merchant_order_id' => sanitize_text_field($order_data['merchant_order_id'] ?? ''),
@@ -212,7 +213,6 @@ function makeDto($order_data): array
         'special_instruction' => sanitize_text_field($order_data['special_instruction'] ?? ''),
         'item_quantity' => sanitize_text_field($order_data['item_quantity'] ?? 0),
         'item_weight' => (float)sanitize_text_field($order_data['item_weight'] ?? 0),
-        'amount_to_collect' => round((float)sanitize_text_field($order_data['amount_to_collect'] ?? 0)),
         'item_description' => sanitize_text_field($order_data['item_description'] ?? '')
     ];
 
@@ -228,6 +228,11 @@ function makeDto($order_data): array
     if (!empty($order_data['recipient_area'])) {
         $payload['recipient_area'] = (int)sanitize_text_field($order_data['recipient_area']);
     }
+
+    if ($order_data['amount_to_collect'] !== "") {
+        $payload['amount_to_collect'] =  (int)sanitize_text_field($order_data['amount_to_collect']);
+    }
+
     return $payload;
 }
 
