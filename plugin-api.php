@@ -307,7 +307,8 @@ function ptc_webhook_handler($data) {
     $consignmentID = $data['consignment_id'] ?? null;
 
     if (!$status) {
-        $status = $orderEvents[$event] ?? null;
+        global $orderEventsStatusMap;
+        $status = $orderEventsStatusMap[$event] ?? null;
     }
 
     $order = wc_get_order($orderId);
