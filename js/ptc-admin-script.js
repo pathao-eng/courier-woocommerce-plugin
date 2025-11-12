@@ -24,7 +24,7 @@ jQuery(document).ready(function ($) {
 
     $('.ptc-open-modal-button').on('click', async function (e) {
         e.preventDefault();
-        hubSelection.hide();
+        //hubSelection.hide();
         var orderID = $(this).data('order-id');
         $('#ptc_wc_order_number').val(orderID);  // Set the Order ID in a hidden field
         ptcModal.show();
@@ -185,7 +185,7 @@ jQuery(document).ready(function ($) {
                 ) {
                     response.responseJSON.data.errors['recipient_address'] = 'Wrong address, please select the correct city and zone instead';
 
-                    hubSelection.show();
+                    //hubSelection.show();
                 }
 
                 showErrorMessages(response?.responseJSON?.data.errors);
