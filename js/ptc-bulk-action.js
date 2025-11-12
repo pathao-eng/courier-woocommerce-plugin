@@ -65,6 +65,60 @@ jQuery(document).ready(function ($) {
         });
     }
 
+    function getCities() {
+        return new Promise((resolve, reject) => {
+            $.post(ajaxurl, {action: 'get_cities'})
+                .done(response => {
+                    const cities = response?.data.map(city => ({
+                        id: city?.city_id,
+                        name: city?.city_name
+                    }));
+                    resolve(cities);
+                })
+                .fail(err => reject(err));
+        });
+    }
+
+    function getZones(cityId) {
+        return new Promise((resolve, reject) => {
+            $.post(
+                ajaxurl,
+                {
+                    action: 'get_zones',
+                    city_id: cityId
+                }
+            )
+                .done(response => {
+                    const zones = response?.data?.data?.data?.map(zone => ({
+                        id: zone?.zone_id,
+                        name: zone?.zone_name
+                    }));
+                    resolve(zones);
+                })
+                .fail(err => reject(err));
+        });
+    }
+
+    function getAreas(zoneId) {
+        return new Promise((resolve, reject) => {
+            $.post(
+                ajaxurl,
+                {
+                    action: 'get_areas',
+                    zone_id: zoneId
+                }
+            )
+                .done(response => {
+                    const areas = response?.data?.data?.data?.map(area => ({
+                        id: area?.area_id,
+                        name: area?.area_name
+                    }));
+                    resolve(areas);
+                })
+                .fail(err => reject(err));
+        });
+    }
+
     function getOrders(orderIds) {
         return new Promise((resolve, reject) => {
             $.post(ajaxurl, {
@@ -136,6 +190,7 @@ jQuery(document).ready(function ($) {
     let deliveryTypes = [];
     let itemTypes = [];
     let storesWithID = {}
+    let cityWithID = {}
     let deliveryTypesWithID = {}
     let itemTypesWithID = {}
 
@@ -146,6 +201,16 @@ jQuery(document).ready(function ($) {
         const storesOnlyNames = stores?.map((item) => {
             storesWithID[item.name] = item.id
             return item.name
+        })
+
+        cities = (await getCities());
+        const citiesOnlyNames = cities?.map((item) => {
+            const name = item.name.trim().toLowerCase()
+            cityWithID[name] = item
+            cityWithID[name].zoneWithID = {}
+
+            cityWithID[name].zones = []
+            return name
         })
 
         deliveryTypes = getDeliveryTypes();
@@ -169,6 +234,121 @@ jQuery(document).ready(function ($) {
                 {data: 'recipient_name', type: 'text'},
                 {data: 'recipient_phone', type: 'text'},
                 {data: 'recipient_secondary_phone', type: 'text'},
+                {
+                    data: 'recipient_city',
+                    type: 'dropdown',
+                    source: citiesOnlyNames,
+                    optionLabel: 'name',
+                    value: 'id',
+                    allowInvalid: false,
+                    filter: true,
+                    validator: async function(value, callback) {
+                        if (this.instance?.isEmptyRow(this.row)) {
+                            callback(true);
+                            return;
+                        }
+
+                        if (!value){
+                            callback(true)
+                            return;
+                        }
+
+                        value = value.trim().toLowerCase()
+
+                        const city = citiesOnlyNames.find(name => name === value ? value : '');
+
+                        if (!city) {
+                            callback(false)
+                            return
+                        }
+                        callback(true)
+
+                        const cityDetails = cityWithID[value];
+
+                        cityWithID[value].zones = (await getZones(cityDetails.id))?.map((item) => {
+                            const name = item.name.trim().toLowerCase()
+                            cityWithID[value].zoneWithID[name] = item
+                            cityWithID[value].zoneWithID[name].areaWithID = {}
+                            cityWithID[value].zoneWithID[name].areas = []
+                            return item.name.trim().toLowerCase()
+                        })
+
+                        this.instance.setCellMeta(this.row, 5, 'source', cityWithID[value].zones);
+                    },
+                },
+                {
+                    data: 'recipient_zone',
+                    type: 'dropdown',
+                    source: [],
+                    optionLabel: 'name',
+                    value: 'id',
+                    allowInvalid: false,
+                    filter: true,
+                    validator: async function(value, callback) {
+                        if (this.instance?.isEmptyRow(this.row)) {
+                            callback(true);
+                            return;
+                        }
+
+                        if (!value){
+                            callback(true)
+                            return;
+                        }
+
+                        value = value.trim().toLowerCase()
+
+                        const cityValue = this.instance.getDataAtCell(this.row, 4)?.trim()?.toLowerCase()
+                        const zone = await cityWithID[cityValue].zones.find(name => name === value ? value : '');
+                        if (!zone) {
+                            callback(false)
+                            return
+                        }
+                        callback(true)
+
+                        const zoneDetails = cityWithID[cityValue].zoneWithID[value]
+
+                        cityWithID[cityValue].zoneWithID[value].areas = (await getAreas(zoneDetails.id))?.map((item) => {
+                            const name = item.name.trim().toLowerCase()
+                            cityWithID[cityValue].zoneWithID[value].areaWithID = item
+                            return name
+                        })
+
+                        this.instance.setCellMeta(this.row, 6, 'source', cityWithID[cityValue].zoneWithID[value].areas);
+
+                    },
+                },
+                {
+                    data: 'recipient_area',
+                    type: 'dropdown',
+                    source: [],
+                    optionLabel: 'name',
+                    value: 'id',
+                    allowInvalid: true,
+                    filter: true,
+                    validator: async function(value, callback) {
+                        if (this.instance?.isEmptyRow(this.row)) {
+                            callback(true);
+                            return;
+                        }
+
+                        if (!value){
+                            callback(true)
+                            return;
+                        }
+
+                        value = value.trim().toLowerCase()
+
+                        const cityValue = this.instance.getDataAtCell(this.row, 4)?.trim()?.toLowerCase()
+                        const zoneValue = this.instance.getDataAtCell(this.row, 5)?.trim()?.toLowerCase()
+                        const area = await cityWithID[cityValue].zoneWithID[zoneValue].areas.find(name => name === value ? value : '');
+                        if (!area) {
+                            callback(false)
+                            return
+                        }
+                        callback(true)
+
+                    },
+                },
                 {data: 'recipient_address', type: 'text'},
                 {data: 'amount_to_collect', type: 'numeric'},
                 {data: 'item_description', type: 'text'},
@@ -214,6 +394,9 @@ jQuery(document).ready(function ($) {
                 'Recipient Name',
                 'Recipient Phone',
                 'Recipient Secondary Phone',
+                'Recipient City',
+                'Recipient Zone',
+                'Recipient Area',
                 'Address',
                 'Collectable Amount',
                 'Note',
