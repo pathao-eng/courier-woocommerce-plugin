@@ -470,6 +470,9 @@ jQuery(document).ready(function ($) {
                 const data = hotInstance?.getSourceData().map(item => {
 
                     item.store_id = storesWithID[item.store_id]
+                    item.recipient_city = cityWithID[item.recipient_city]?.id
+                    item.recipient_zone = cityWithID[item.recipient_city]?.zoneWithID[item.recipient_zone]?.id
+                    item.recipient_area = cityWithID[item.recipient_city]?.zoneWithID[item.recipient_zone]?.areaWithID[item.recipient_area]?.id
                     item.delivery_type = deliveryTypesWithID[item.delivery_type]
                     item.item_type = itemTypesWithID[item.item_type]
 
