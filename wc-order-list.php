@@ -139,9 +139,16 @@ function ptc_render_store_modal_content()
           <span class="close">&times;</span>
           <h2>Send this through Pathao Courier</h2>
           <hr>
-          <?php if ($order): 
-            
-            ?>
+          <?php if ($order): ?>
+          
+              <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img" alt="Pathao Courier Logo" style="
+                   height: 200px;
+                   display: none; 
+                   position: absolute;
+                   left: 42%;
+                   top: 50%;
+               ">
+               
               <div class="order-info">
                   <h3>Order Information</h3>
                   <p><strong>Total Price:</strong> <span id="ptc_wc_order_total_price"> </span> </p>

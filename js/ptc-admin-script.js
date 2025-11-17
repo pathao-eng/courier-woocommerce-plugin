@@ -21,6 +21,7 @@ jQuery(document).ready(function ($) {
     const storeIdInput = $('#store');
     const deliveryTypeInput = $('#ptc_wc_delivery_type');
     const itemTypeInput = $('#ptc_wc_item_type');
+    const loading = $("#ptc-loading-img");
 
     $('.ptc-open-modal-button').on('click', async function (e) {
         e.preventDefault();
@@ -47,12 +48,14 @@ jQuery(document).ready(function ($) {
     });
 
     let getOrderInfoAndPopulateModalData = async function (orderID) {
+        loading.fadeIn()
         $.post(ajaxurl, {
             action: 'get_wc_order',
             order_id: orderID
-        }, function (response) {
+        }, async function (response) {
             orderData = response.data;
-            populateModalData();
+            await populateModalData();
+            loading.fadeOut()
         });
     }
 
@@ -104,7 +107,7 @@ jQuery(document).ready(function ($) {
             let defaultCityId = orderData?.shipping?.city_id ?? orderData?.billing?.city_id
             let defaultZoneId = orderData?.shipping?.zone_id ?? orderData?.billing?.city_id
             let defaultAreaId = orderData?.shipping?.area_id ?? orderData?.billing?.city_id
-            populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId)
+            await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId)
         }
 
     }
@@ -331,6 +334,7 @@ jQuery(document).ready(function ($) {
             });
         });
     }
+
 });
 
 jQuery(document).ready(function ($) {
