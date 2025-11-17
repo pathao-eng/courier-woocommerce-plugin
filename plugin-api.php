@@ -262,6 +262,14 @@ function getPtOrderData(bool|WC_Order|WC_Order_Refund $order): array
 
     $orderData['billing']['full_name'] = $order->get_formatted_billing_full_name();
 
+    $orderData['billing']['city_id'] = (int)$order->get_meta('_billing_pathao_city');
+    $orderData['billing']['zone_id'] = (int)$order->get_meta('_billing_pathao_zone');
+    $orderData['billing']['area_id'] = (int)$order->get_meta('_billing_pathao_area');
+
+    $orderData['shipping']['city_id'] = (int)$order->get_meta('_shipping_pathao_city');
+    $orderData['shipping']['zone_id'] = (int)$order->get_meta('_shipping_pathao_zone');
+    $orderData['shipping']['area_id'] = (int)$order->get_meta('_shipping_pathao_area');
+
     $orderData['total_items'] = $orderItems;
     $orderData['total_weight'] = $totalWeight;
     $orderData['payment_date'] = $order->get_date_paid();

@@ -100,6 +100,11 @@ jQuery(document).ready(function ($) {
             orderTotalItemsDom.html(orderData?.total_items);
 
             orderItemsDom.html(orderItems);
+
+            let defaultCityId = orderData?.shipping?.city_id ?? orderData?.billing?.city_id
+            let defaultZoneId = orderData?.shipping?.zone_id ?? orderData?.billing?.city_id
+            let defaultAreaId = orderData?.shipping?.area_id ?? orderData?.billing?.city_id
+            populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId)
         }
 
     }
@@ -262,22 +267,73 @@ jQuery(document).ready(function ($) {
             $(`#${key}`).next().html('');
         }
     }
+
+    function populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId) {
+
+
+        const cityDom = $('#city');
+        const zoneDom = $('#zone');
+        const areaDom = $('#area');
+
+        $.post(ajaxurl, {
+            action: 'get_cities',
+        }, function (response) {
+            const cities = response.data;
+
+            let options = '<option value="">Select city</option>';
+            cities?.forEach(function (city) {
+                options += `<option ${ defaultCityId === city.city_id ? 'selected': ''} value="${city.city_id}">${city.city_name}</option>`;
+            });
+
+            if (defaultCityId) {
+                cityDom.trigger('change')
+            }
+
+            cityDom.html(options);
+        });
+
+        cityDom.change(function () {
+            zoneDom.html('<option value="">Select Zone</option>');
+            areaDom.html('<option value="">Select Area</option>');
+            const city_id = $(this).val();
+            $.post(ajaxurl, {
+                action: 'get_zones',
+                city_id: city_id
+            }, function (response) {
+                const zones = response.data.data.data;
+                let options = '<option value="">Select Zone</option>';
+                zones.forEach(function (zone) {
+                    options += `<option ${ defaultZoneId === zone.zone_id ? 'selected': ''} value="${zone.zone_id}">${zone.zone_name}</option>`;
+                });
+
+                if (defaultZoneId) {
+                    zoneDom.trigger('change')
+                }
+
+                zoneDom.html(options);
+            });
+        });
+
+        zoneDom.change(function () {
+            areaDom.html('<option value="">Select Area</option>');
+
+            const zone_id = $(this).val();
+            $.post(ajaxurl, {
+                action: 'get_areas',
+                zone_id: zone_id
+            }, function (response) {
+                const areas = response.data.data.data;
+                let options = '<option value="">Select Area</option>';
+                areas.forEach(function (area) {
+                    options += `<option ${ defaultAreaId === area.area_id ? 'selected': ''} value="${area.area_id}">${area.area_name}</option>`;
+                });
+                areaDom.html(options);
+            });
+        });
+    }
 });
 
 jQuery(document).ready(function ($) {
-
-    $.post(ajaxurl, {
-        action: 'get_cities',
-    }, function (response) {
-        const cities = response.data;
-
-        let options = '<option value="">Select city</option>';
-        cities?.forEach(function (city) {
-            options += `<option value="${city.city_id}">${city.city_name}</option>`;
-        });
-
-        $('#city').html(options);
-    });
 
     $.post(ajaxurl, {
         action: 'get_stores',
@@ -295,39 +351,5 @@ jQuery(document).ready(function ($) {
         $('#store').html(options);
     });
 
-
-    $('#city').change(function () {
-        $('#zone').html('<option value="">Select Zone</option>');
-        $('#area').html('<option value="">Select Area</option>');
-        const city_id = $(this).val();
-        $.post(ajaxurl, {
-            action: 'get_zones',
-            city_id: city_id
-        }, function (response) {
-            const zones = response.data.data.data;
-            let options = '<option value="">Select Zone</option>';
-            zones.forEach(function (zone) {
-                options += `<option value="${zone.zone_id}">${zone.zone_name}</option>`;
-            });
-            $('#zone').html(options);
-        });
-    });
-
-    $('#zone').change(function () {
-        $('#area').html('<option value="">Select Area</option>');
-
-        const zone_id = $(this).val();
-        $.post(ajaxurl, {
-            action: 'get_areas',
-            zone_id: zone_id
-        }, function (response) {
-            const areas = response.data.data.data;
-            let options = '<option value="">Select Area</option>';
-            areas.forEach(function (area) {
-                options += `<option value="${area.area_id}">${area.area_name}</option>`;
-            });
-            $('#area').html(options);
-        });
-    });
 });
 
