@@ -16,6 +16,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+defined( 'PTC_CACHE_GROUP' ) || define( 'PTC_CACHE_GROUP', 'ptc_cache_' );
+defined( 'PTC_CACHE_TTL' ) || define( 'PTC_CACHE_TTL', 86400 * 7 );
 defined( 'PTC_PLUGIN_URL' ) || define( 'PTC_PLUGIN_URL', WP_PLUGIN_URL . '/' . plugin_basename( dirname( __FILE__ ) ) . '/' );
 defined( 'PTC_PLUGIN_DIR' ) || define( 'PTC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 defined( 'PTC_PLUGIN_TEMPLATE_DIR' ) || define( 'PTC_PLUGIN_TEMPLATE_DIR', plugin_dir_path( __FILE__ ) . 'templates/');

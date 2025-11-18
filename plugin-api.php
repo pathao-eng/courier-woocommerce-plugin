@@ -60,7 +60,9 @@ function pt_hms_ajax_get_stores()
 
 function pt_hms_ajax_get_cities()
 {
-    $cities = pt_hms_get_cities();
+    $cities = pathaoCacheRemember('cities', PTC_CACHE_TTL, function () {
+        return pt_hms_get_cities();
+    });
     wp_send_json_success($cities);
 }
 
@@ -68,7 +70,9 @@ function pt_hms_ajax_get_zones()
 {
     if (isset($_POST['city_id'])) {
         $city_id = intval($_POST['city_id']);
-        $zones = pt_hms_get_zones($city_id);
+        $zones = pathaoCacheRemember("cities:{$city_id}:zones", PTC_CACHE_TTL, function () use ($city_id) {
+            return pt_hms_get_zones($city_id);
+        });
         wp_send_json_success($zones);
     } else {
         wp_send_json_error('Missing city_id parameter.');
@@ -82,7 +86,9 @@ function pt_hms_ajax_get_areas()
 {
     if (isset($_POST['zone_id'])) {
         $zone_id = intval($_POST['zone_id']);
-        $areas = pt_hms_get_areas($zone_id);
+        $areas = pathaoCacheRemember("zones:{$zone_id}:areas", PTC_CACHE_TTL, function () use ($zone_id) {
+            return pt_hms_get_areas($zone_id);
+        }) ;
         wp_send_json_success($areas);
     } else {
         wp_send_json_error('Missing zone_id parameter.');
@@ -354,4 +360,64 @@ function webhookResponse($message, $statusCode = 200)
     $response->set_status($statusCode);
     $response->header('X-Pathao-Merchant-Webhook-Integration-Secret', 'f3992ecc-59da-4cbe-a049-a13da2018d51');
     return $response;
+}
+
+
+/**
+ * Cache remember helper – persistent cache if available,
+ * fallback to transients otherwise.
+ *
+ * @param string   $key
+ * @param int      $ttl     Seconds to store the cache.
+ * @param callable $callback Function that returns the value to cache.
+ *
+ * @return mixed
+ */
+function pathaoCacheRemember( $key, $ttl, $callback ) {
+
+    $cache_group = PTC_CACHE_GROUP;
+
+    // Check if persistent object cache is available
+    if ( wp_using_ext_object_cache() ) {
+
+        // Try object cache
+        $value = wp_cache_get( $key, $cache_group );
+
+        if ( false !== $value ) {
+            return $value;
+        }
+
+        // Cache miss → generate value
+        $value = call_user_func( $callback );
+
+        if (!$value) {
+            return false;
+        }
+
+        // Save in object cache
+        wp_cache_set( $key, $value, $cache_group, $ttl );
+
+        return $value;
+    }
+
+    // Fallback to transients
+    $transient_key = PTC_CACHE_GROUP . $key;
+
+    $value = get_transient( $transient_key );
+
+    if ( false !== $value ) {
+        return $value;
+    }
+
+    // Cache miss → generate value
+    $value = call_user_func( $callback );
+
+    if (!$value) {
+        return false;
+    }
+
+    // Save in transient cache
+    set_transient( $transient_key, $value, $ttl );
+
+    return $value;
 }
