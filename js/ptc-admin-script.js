@@ -369,7 +369,6 @@ jQuery(document).ready(function ($) {
 
         // Cache configuration
         CACHE_KEY: 'ptc_location_data',
-        CACHE_TTL: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
 
         // Promises for in-flight requests to prevent duplicates
         _storesPromise: null,

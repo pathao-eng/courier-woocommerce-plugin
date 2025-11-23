@@ -56,7 +56,6 @@ jQuery(document).ready(function ($) {
 
         // Cache configuration
         CACHE_KEY: 'ptc_location_data',
-        CACHE_TTL: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
 
         // Promises for in-flight requests to prevent duplicates
         _storesPromise: null,
@@ -86,12 +85,6 @@ jQuery(document).ready(function ($) {
                 if (!cached) return false;
 
                 const data = JSON.parse(cached);
-                const now = Date.now();
-
-                if (now - data.timestamp > this.CACHE_TTL) {
-                    localStorage.removeItem(this.CACHE_KEY);
-                    return false;
-                }
 
                 this.stores = data.stores;
                 this.cities = data.cities;
