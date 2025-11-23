@@ -564,27 +564,17 @@ jQuery(document).ready(function ($) {
             $('#modal-confirm').prop('disabled', true);
             list.empty();
 
-            for (const order of validData) {
-                // Map data to backend format
-                const orderData = {
-                    ...order,
-                    store_id: storesWithID[order.store_id],
-                    recipient_city: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.id,
-                    recipient_zone: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.id,
-                    recipient_area: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.areaWithID[LocationDataManager.normalize(order.recipient_area)]?.id,
-                    delivery_type: deliveryTypesWithID[order.delivery_type],
-                    item_type: itemTypesWithID[order.item_type]
-                };
+            const ordersToCreate = validData.map(order => ({
+                ...order,
+                store_id: storesWithID[order.store_id],
+                recipient_city: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.id,
+                recipient_zone: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.id,
+                recipient_area: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.areaWithID[LocationDataManager.normalize(order.recipient_area)]?.id,
+                delivery_type: deliveryTypesWithID[order.delivery_type],
+                item_type: itemTypesWithID[order.item_type]
+            }));
 
-                try {
-                    const response = await createOrder(orderData);
-                    const li = $('<li>').text(`Order ${order.merchant_order_id}: Success (Consignment ID: ${response.consignment_id})`).css('color', 'green');
-                    list.append(li);
-                } catch (error) {
-                    const li = $('<li>').text(`Order ${order.merchant_order_id}: Failed (${error.message || 'Unknown error'})`).css('color', 'red');
-                    list.append(li);
-                }
-            }
+            await createBulkOrder(ordersToCreate);
 
             loading.hide();
             $('#modal-confirm').prop('disabled', false);
