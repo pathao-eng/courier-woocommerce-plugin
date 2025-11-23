@@ -13,6 +13,7 @@ Whether you need seamless package tracking or a user-friendly way to manage deli
 - Sync orders to the Pathao Merchant Panel
 - Webhook Implementations
 - Realtime order status updates
+- Bulk Order Creation
 
 ## Requirements
 - Requires at least: 6.0
@@ -73,6 +74,34 @@ To use follow these steps:
 6. You will see a modal with the order details. Fill in the details and click on the 'Send to Pathao' button.
 
 ![img_8.png](screenshots%2Fimg_8.png)
+
+### Bulk Order Creation
+
+You can now create orders in bulk!
+
+1. **Preload Location Data (Recommended):**
+   - Go to **Settings > Pathao Courier**.
+   - Click the **Preload City, Zone & Area** button. This fetches and caches all location data for faster loading.
+
+   ![img_9.png](screenshots%2Fimg_9.png)
+
+2. **Select Orders:**
+   - Go to **WooCommerce > Orders**.
+   - Select the orders you want to send.
+   - Choose **Send with Pathao** from the Bulk Actions dropdown and click **Apply**.
+
+3. **Bulk Order Modal:**
+   - If you haven't preloaded data, you will see a prompt to fetch it.
+
+     ![img_10.png](screenshots%2Fimg_10.png)
+
+   - Once loaded, you will see a grid view of your orders.
+   - **City, Zone, and Area** will be automatically selected if the customer's address matches.
+   - You can edit any details directly in the grid.
+
+     ![img_11.png](screenshots%2Fimg_11.png)
+
+   - Click **Confirm** to create all orders at once.
 
 ## Changelog
 - v.1.2.0
