@@ -307,7 +307,7 @@ jQuery(document).ready(function ($) {
             if (defaultZoneId && zones.some(z => z.id == defaultZoneId)) {
                 zoneDom.trigger('change');
                 defaultZoneId = null;
-            } \
+            }
         });
 
         zoneDom.off('change').on('change', async function () {

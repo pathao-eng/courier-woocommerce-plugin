@@ -48,8 +48,6 @@ jQuery(document).ready(function ($) {
         });
     }
 
-    // LocationDataManager is now loaded from js/ptc-location-manager.js
-
     // Preload Button Handler in Bulk Modal
     $('#ptc-bulk-preload-btn').on('click', async function () {
         const $btn = $(this);
@@ -122,11 +120,6 @@ jQuery(document).ready(function ($) {
         let defaultDeliveryType = deliveryTypes[0].name
         let defaultItemType = itemTypes[0].name
 
-        // let defaultCityId = data?.shipping?.city_id ?? data?.billing?.city_id
-        // let defaultZoneId = data?.shipping?.zone_id ?? data?.billing?.city_id
-        // let defaultAreaId = data?.shipping?.area_id ?? data?.billing?.city_id
-        // let defaultZone = null
-
         let address = '';
         if (data?.shipping?.address_1 && data?.shipping?.address_2) {
             address = `${data?.shipping?.address_1}, ${data?.shipping?.address_2}, ${data?.shipping?.city}, ${data?.shipping?.state}, ${data?.shipping?.postcode}`;
@@ -174,18 +167,22 @@ jQuery(document).ready(function ($) {
     async function renderHandsontable(selectedOrders) {
         const container = document.getElementById('hot-container');
 
-        stores = (await LocationDataManager.getStores());
+        const [storesData, citiesData] = await Promise.all([
+            LocationDataManager.getStores(),
+            LocationDataManager.getCities()
+        ]);
+
+        stores = storesData;
         const storesOnlyNames = stores?.map((item) => {
             storesWithID[item.name] = item.id
             return item.name
         })
 
-        const cities = (await LocationDataManager.getCities());
+        const cities = citiesData;
         const citiesOnlyNames = cities?.map((item) => {
             const name = LocationDataManager.normalize(item.name);
             cityWithID[name] = item
             cityWithID[name].zoneWithID = {}
-
             cityWithID[name].zones = []
             return name
         })
@@ -413,63 +410,65 @@ jQuery(document).ready(function ($) {
             licenseKey: 'non-commercial-and-evaluation'
         });
 
-        hotInstance.getData().forEach((row, rowIndex) => {
-            // hotInstance.setDataAtCell(rowIndex, 3, "High"); // update column 3
-            const orderId = hotInstance.getDataAtCell(rowIndex, 0)
-            const orderDetails = orderBulkDetails.find((item) => {
-                return item.id === orderId
-            })
+        await prefillOrderLocations(hotInstance, orderBulkDetails, cities);
+    }
 
-            let defaultCityId = orderDetails?.shipping?.city_id ?? orderDetails?.billing?.city_id
-            let defaultZoneId = orderDetails?.shipping?.zone_id ?? orderDetails?.billing?.zone_id
-            let defaultAreaId = orderDetails?.shipping?.area_id ?? orderDetails?.billing?.area_id
-            let defaultZone = null
+    async function prefillOrderLocations(hotInstance, orderBulkDetails, cities) {
+        const rows = hotInstance.getData();
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+            const orderId = hotInstance.getDataAtCell(rowIndex, 0);
+            const orderDetails = orderBulkDetails.find((item) => item.id === orderId);
+
+            let defaultCityId = orderDetails?.shipping?.city_id ?? orderDetails?.billing?.city_id;
+            let defaultZoneId = orderDetails?.shipping?.zone_id ?? orderDetails?.billing?.zone_id;
+            let defaultAreaId = orderDetails?.shipping?.area_id ?? orderDetails?.billing?.area_id;
 
             if (defaultCityId) {
-                let defaultCity = cities.find((city) => {
-                    return city.id === defaultCityId
-                })
-
-                const defaultCityName = LocationDataManager.normalize(defaultCity?.name);
-
-                hotInstance.setDataAtCell(rowIndex, 4, defaultCityName);
-
-                console.log(cityWithID[defaultCityName].zones)
-                // hotInstance.render();
+                let defaultCity = cities.find((city) => city.id === defaultCityId);
                 if (defaultCity) {
+                    const defaultCityName = LocationDataManager.normalize(defaultCity.name);
+                    hotInstance.setDataAtCell(rowIndex, 4, defaultCityName);
 
-                    LocationDataManager.getZones(defaultCity.id).then((items) => {
-
-                        const defaultCityName = LocationDataManager.normalize(defaultCity.name);
-
+                    try {
+                        const items = await LocationDataManager.getZones(defaultCity.id);
                         cityWithID[defaultCityName].zones = items.map(item => LocationDataManager.normalize(item.name));
 
                         items.forEach((item) => {
                             const name = LocationDataManager.normalize(item.name);
-                            cityWithID[defaultCityName].zoneWithID[name] = item
-                            cityWithID[defaultCityName].zoneWithID[name].areaWithID = {}
-                            cityWithID[defaultCityName].zoneWithID[name].areas = []
-                        })
+                            cityWithID[defaultCityName].zoneWithID[name] = item;
+                            cityWithID[defaultCityName].zoneWithID[name].areaWithID = {};
+                            cityWithID[defaultCityName].zoneWithID[name].areas = [];
+                        });
 
-
-                        defaultZone = items.find((zone) => {
-                            return zone.id === defaultZoneId
-                        })
+                        const defaultZone = items.find((zone) => zone.id == defaultZoneId);
 
                         if (defaultZone) {
-                            console.log({ defaultZone })
-                            // hotInstance.setCellMeta(rowIndex, 5, 'source', ["sagar", "dash"]);
-                            hotInstance.setDataAtCell(rowIndex, 5, LocationDataManager.normalize(defaultZone.name));
+                            const defaultZoneName = LocationDataManager.normalize(defaultZone.name);
+                            hotInstance.setDataAtCell(rowIndex, 5, defaultZoneName);
+
+                            try {
+                                const areas = await LocationDataManager.getAreas(defaultZone.id);
+                                cityWithID[defaultCityName].zoneWithID[defaultZoneName].areas = areas.map(item => LocationDataManager.normalize(item.name));
+
+                                areas.forEach((item) => {
+                                    const name = LocationDataManager.normalize(item.name);
+                                    cityWithID[defaultCityName].zoneWithID[defaultZoneName].areaWithID[name] = item;
+                                });
+
+                                const defaultArea = areas.find((area) => area.id == defaultAreaId);
+                                if (defaultArea) {
+                                    hotInstance.setDataAtCell(rowIndex, 6, LocationDataManager.normalize(defaultArea.name));
+                                }
+                            } catch (e) {
+                                console.error('Error prefilling areas', e);
+                            }
                         }
-
-                        // hotInstance.render();
-                    })
-
+                    } catch (e) {
+                        console.error('Error prefilling zones', e);
+                    }
                 }
             }
-
-            console.log({ orderId, orderDetails })
-        });
+        }
     }
 
     const form = $('#wc-orders-filter');
@@ -546,45 +545,44 @@ jQuery(document).ready(function ($) {
             // Data missing, show preload UI
             $('#ptc-bulk-preload-container').show();
         }
-
-        // Event handlers for modal buttons
-        $('#modal-confirm').off('click').on('click', async function () {
-            if (!hotInstance) return;
-            const data = hotInstance.getSourceData();
-            // Filter out empty rows or invalid data if necessary
-            // The validator logic in Handsontable handles visual feedback, but we should ensure we don't send garbage
-            const validData = data.filter(row => row.recipient_name && row.recipient_phone && row.recipient_address);
-
-            if (validData.length === 0) {
-                alert('No valid data to send.');
-                return;
-            }
-
-            loading.show();
-            $('#modal-confirm').prop('disabled', true);
-            list.empty();
-
-            const ordersToCreate = validData.map(order => ({
-                ...order,
-                store_id: storesWithID[order.store_id],
-                recipient_city: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.id,
-                recipient_zone: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.id,
-                recipient_area: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.areaWithID[LocationDataManager.normalize(order.recipient_area)]?.id,
-                delivery_type: deliveryTypesWithID[order.delivery_type],
-                item_type: itemTypesWithID[order.item_type]
-            }));
-
-            await createBulkOrder(ordersToCreate);
-
-            loading.hide();
-            $('#modal-confirm').prop('disabled', false);
-        });
-
-        $('#modal-cancel').off('click').on('click', function () {
-            hotInstance?.destroy();
-            list.empty();
-            modal.fadeOut();
-        });
     }
+
+    // Event handlers for modal buttons
+    $('#modal-confirm').on('click', async function () {
+        if (!hotInstance) return;
+        const data = hotInstance.getSourceData();
+        // Filter out empty rows or invalid data if necessary
+        const validData = data.filter(row => row.recipient_name && row.recipient_phone && row.recipient_address);
+
+        if (validData.length === 0) {
+            alert('No valid data to send.');
+            return;
+        }
+
+        loading.show();
+        $('#modal-confirm').prop('disabled', true);
+        list.empty();
+
+        const ordersToCreate = validData.map(order => ({
+            ...order,
+            store_id: storesWithID[order.store_id],
+            recipient_city: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.id,
+            recipient_zone: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.id,
+            recipient_area: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.areaWithID[LocationDataManager.normalize(order.recipient_area)]?.id,
+            delivery_type: deliveryTypesWithID[order.delivery_type],
+            item_type: itemTypesWithID[order.item_type]
+        }));
+
+        await createBulkOrder(ordersToCreate);
+
+        loading.hide();
+        $('#modal-confirm').prop('disabled', false);
+    });
+
+    $('#modal-cancel').on('click', function () {
+        hotInstance?.destroy();
+        list.empty();
+        modal.fadeOut();
+    });
 
 });
