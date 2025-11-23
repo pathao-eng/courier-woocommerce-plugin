@@ -48,76 +48,218 @@ jQuery(document).ready(function ($) {
         });
     }
 
-    function getStores() {
-        return new Promise((resolve, reject) => {
-            $.post(ajaxurl, {action: 'get_stores'})
-                .done(response => {
-                    const stores = response?.data.map(store => ({
-                        id: store.store_id,
-                        name: store.store_name,
-                        is_default_store: store.is_default_store,
-                        is_active: store.is_active,
-                        selected: store.is_default_store
-                    }));
-                    resolve(stores);
-                })
-                .fail(err => reject(err));
-        });
-    }
+    const LocationDataManager = {
+        stores: null,
+        cities: null,
+        zones: {}, // Cache zones by cityId
+        areas: {}, // Cache areas by zoneId
 
-    function getCities() {
-        return new Promise((resolve, reject) => {
-            $.post(ajaxurl, {action: 'get_cities'})
-                .done(response => {
-                    const cities = response?.data.map(city => ({
-                        id: city?.city_id,
-                        name: city?.city_name
-                    }));
-                    resolve(cities);
-                })
-                .fail(err => reject(err));
-        });
-    }
+        // Cache configuration
+        CACHE_KEY: 'ptc_location_data',
+        CACHE_TTL: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
 
-    function getZones(cityId) {
-        return new Promise((resolve, reject) => {
-            $.post(
-                ajaxurl,
-                {
+        // Promises for in-flight requests to prevent duplicates
+        _storesPromise: null,
+        _citiesPromise: null,
+        _zonesPromises: {},
+        _areasPromises: {},
+
+        // Helper to normalize names for keys
+        normalize(name) {
+            return name ? name.trim().toLowerCase() : '';
+        },
+
+        // Helper to process items in batches
+        async processBatch(items, batchSize, processFn) {
+            const results = [];
+            for (let i = 0; i < items.length; i += batchSize) {
+                const batch = items.slice(i, i + batchSize);
+                const batchResults = await Promise.all(batch.map(item => processFn(item)));
+                results.push(...batchResults);
+            }
+            return results;
+        },
+
+        loadFromStorage() {
+            try {
+                const cached = localStorage.getItem(this.CACHE_KEY);
+                if (!cached) return false;
+
+                const data = JSON.parse(cached);
+                const now = Date.now();
+
+                if (now - data.timestamp > this.CACHE_TTL) {
+                    localStorage.removeItem(this.CACHE_KEY);
+                    return false;
+                }
+
+                this.stores = data.stores;
+                this.cities = data.cities;
+                this.zones = data.zones;
+                this.areas = data.areas;
+                return true;
+            } catch (e) {
+                console.error('Failed to load location data from storage', e);
+                return false;
+            }
+        },
+
+        saveToStorage() {
+            try {
+                const data = {
+                    timestamp: Date.now(),
+                    stores: this.stores,
+                    cities: this.cities,
+                    zones: this.zones,
+                    areas: this.areas
+                };
+                localStorage.setItem(this.CACHE_KEY, JSON.stringify(data));
+            } catch (e) {
+                console.error('Failed to save location data to storage', e);
+            }
+        },
+
+        async fetchAll() {
+            // 1. Try to load from storage first
+            if (this.loadFromStorage()) {
+                // If we have data, we might still want to ensure stores are loaded if they weren't part of the cache logic initially,
+                // but assuming saveToStorage saves everything, we are good.
+                // Just to be safe, if stores are missing (e.g. old cache version), fetch them.
+                if (!this.stores) await this.getStores();
+                return;
+            }
+
+            // 2. Fetch Cities
+            const cities = await this.getCities();
+            if (!cities || cities.length === 0) return;
+
+            // 3. Fetch Zones for all Cities (Batch size 5)
+            const allZones = await this.processBatch(cities, 5, async (city) => {
+                try {
+                    const zones = await this.getZones(city.id);
+                    return { cityId: city.id, zones };
+                } catch (e) {
+                    console.error(`Failed to fetch zones for city ${city.id}`, e);
+                    return { cityId: city.id, zones: [] };
+                }
+            });
+
+            // Flatten zones list for area fetching
+            const zonesToFetch = allZones.flatMap(item => item.zones);
+
+            // 4. Fetch Areas for all Zones (Batch size 5)
+            await this.processBatch(zonesToFetch, 5, async (zone) => {
+                try {
+                    await this.getAreas(zone.id);
+                } catch (e) {
+                    console.error(`Failed to fetch areas for zone ${zone.id}`, e);
+                }
+            });
+
+            // 5. Ensure stores are fetched
+            await this.getStores();
+
+            // 6. Save to storage
+            this.saveToStorage();
+        },
+
+        getStores() {
+            if (this.stores) return Promise.resolve(this.stores);
+            if (this._storesPromise) return this._storesPromise;
+
+            this._storesPromise = new Promise((resolve, reject) => {
+                $.post(ajaxurl, { action: 'get_stores' })
+                    .done(response => {
+                        this.stores = response?.data.map(store => ({
+                            id: store.store_id,
+                            name: store.store_name,
+                            is_default_store: store.is_default_store,
+                            is_active: store.is_active,
+                            selected: store.is_default_store
+                        }));
+                        resolve(this.stores);
+                    })
+                    .fail(err => {
+                        this._storesPromise = null;
+                        reject(err);
+                    });
+            });
+            return this._storesPromise;
+        },
+
+        getCities() {
+            if (this.cities) return Promise.resolve(this.cities);
+            if (this._citiesPromise) return this._citiesPromise;
+
+            this._citiesPromise = new Promise((resolve, reject) => {
+                $.post(ajaxurl, { action: 'get_cities' })
+                    .done(response => {
+                        this.cities = response?.data.map(city => ({
+                            id: city?.city_id,
+                            name: city?.city_name
+                        }));
+                        resolve(this.cities);
+                    })
+                    .fail(err => {
+                        this._citiesPromise = null;
+                        reject(err);
+                    });
+            });
+            return this._citiesPromise;
+        },
+
+        getZones(cityId) {
+            if (!cityId) return Promise.resolve([]);
+            if (this.zones[cityId]) return Promise.resolve(this.zones[cityId]);
+            if (this._zonesPromises[cityId]) return this._zonesPromises[cityId];
+
+            this._zonesPromises[cityId] = new Promise((resolve, reject) => {
+                $.post(ajaxurl, {
                     action: 'get_zones',
                     city_id: cityId
-                }
-            )
-                .done(response => {
-                    const zones = response?.data?.data?.data?.map(zone => ({
-                        id: zone?.zone_id,
-                        name: zone?.zone_name
-                    }));
-                    resolve(zones);
                 })
-                .fail(err => reject(err));
-        });
-    }
+                    .done(response => {
+                        const zones = response?.data?.data?.data?.map(zone => ({
+                            id: zone?.zone_id,
+                            name: zone?.zone_name
+                        })) || [];
+                        this.zones[cityId] = zones;
+                        resolve(zones);
+                    })
+                    .fail(err => {
+                        delete this._zonesPromises[cityId];
+                        reject(err);
+                    });
+            });
+            return this._zonesPromises[cityId];
+        },
 
-    function getAreas(zoneId) {
-        return new Promise((resolve, reject) => {
-            $.post(
-                ajaxurl,
-                {
+        getAreas(zoneId) {
+            if (!zoneId) return Promise.resolve([]);
+            if (this.areas[zoneId]) return Promise.resolve(this.areas[zoneId]);
+            if (this._areasPromises[zoneId]) return this._areasPromises[zoneId];
+
+            this._areasPromises[zoneId] = new Promise((resolve, reject) => {
+                $.post(ajaxurl, {
                     action: 'get_areas',
                     zone_id: zoneId
-                }
-            )
-                .done(response => {
-                    const areas = response?.data?.data?.data?.map(area => ({
-                        id: area?.area_id,
-                        name: area?.area_name
-                    }));
-                    resolve(areas);
                 })
-                .fail(err => reject(err));
-        });
-    }
+                    .done(response => {
+                        const areas = response?.data?.data?.data?.map(area => ({
+                            id: area?.area_id,
+                            name: area?.area_name
+                        })) || [];
+                        this.areas[zoneId] = areas;
+                        resolve(areas);
+                    })
+                    .fail(err => {
+                        delete this._areasPromises[zoneId];
+                        reject(err);
+                    });
+            });
+            return this._areasPromises[zoneId];
+        }
+    };
 
     function getOrders(orderIds) {
         return new Promise((resolve, reject) => {
@@ -135,14 +277,13 @@ jQuery(document).ready(function ($) {
 
     function getDeliveryTypes() {
         return [
-            {id: 48, name: "Normal Delivery", selected: true},
-            {id: 12, name: "On Demand", selected: false},
-            {id: 24, name: "Express Delivery", selected: false}
+            { id: 48, name: "Normal Delivery", selected: true },
+            { id: 12, name: "On Demand", selected: false },
+            { id: 24, name: "Express Delivery", selected: false }
         ];
     }
 
     function populateBulkModalData(data, stores, deliveryTypes, itemTypes) {
-
 
         let defaultStore = ''
 
@@ -152,6 +293,11 @@ jQuery(document).ready(function ($) {
 
         let defaultDeliveryType = deliveryTypes[0].name
         let defaultItemType = itemTypes[0].name
+
+        // let defaultCityId = data?.shipping?.city_id ?? data?.billing?.city_id
+        // let defaultZoneId = data?.shipping?.zone_id ?? data?.billing?.city_id
+        // let defaultAreaId = data?.shipping?.area_id ?? data?.billing?.city_id
+        // let defaultZone = null
 
         let address = '';
         if (data?.shipping?.address_1 && data?.shipping?.address_2) {
@@ -166,6 +312,9 @@ jQuery(document).ready(function ($) {
             recipient_phone: data?.billing?.phone,
             recipient_secondary_phone: '',
             recipient_address: address,
+            recipient_city: null,
+            recipient_zone: null,
+            recipient_area: null,
             amount_to_collect: data.total,
             item_description: '',
             special_instruction: '',
@@ -180,9 +329,9 @@ jQuery(document).ready(function ($) {
 
     function getItemTypes() {
         return [
-            {id: 2, name: "Parcel"},
-            {id: 1, name: "Document", selected: false},
-            {id: 3, name: "Fragile", selected: false}
+            { id: 2, name: "Parcel" },
+            { id: 1, name: "Document", selected: false },
+            { id: 3, name: "Fragile", selected: false }
         ];
     }
 
@@ -197,15 +346,15 @@ jQuery(document).ready(function ($) {
     async function renderHandsontable(selectedOrders) {
         const container = document.getElementById('hot-container');
 
-        stores = (await getStores());
+        stores = (await LocationDataManager.getStores());
         const storesOnlyNames = stores?.map((item) => {
             storesWithID[item.name] = item.id
             return item.name
         })
 
-        cities = (await getCities());
+        const cities = (await LocationDataManager.getCities());
         const citiesOnlyNames = cities?.map((item) => {
-            const name = item.name.trim().toLowerCase()
+            const name = LocationDataManager.normalize(item.name);
             cityWithID[name] = item
             cityWithID[name].zoneWithID = {}
 
@@ -225,15 +374,16 @@ jQuery(document).ready(function ($) {
             return item.name
         })
 
-        const data = (await getOrders(selectedOrders.join(',')))?.map(order => populateBulkModalData(order, stores, deliveryTypes, itemTypes));
+        const orderBulkDetails = await getOrders(selectedOrders.join(','))
+        const data = (orderBulkDetails)?.map(order => populateBulkModalData(order, stores, deliveryTypes, itemTypes));
 
         hotInstance = new Handsontable(container, {
             data: data,
             columns: [
-                {data: 'merchant_order_id', readOnly: true},
-                {data: 'recipient_name', type: 'text'},
-                {data: 'recipient_phone', type: 'text'},
-                {data: 'recipient_secondary_phone', type: 'text'},
+                { data: 'merchant_order_id', readOnly: true },
+                { data: 'recipient_name', type: 'text' },
+                { data: 'recipient_phone', type: 'text' },
+                { data: 'recipient_secondary_phone', type: 'text' },
                 {
                     data: 'recipient_city',
                     type: 'dropdown',
@@ -242,18 +392,18 @@ jQuery(document).ready(function ($) {
                     value: 'id',
                     allowInvalid: false,
                     filter: true,
-                    validator: async function(value, callback) {
+                    validator: async function (value, callback) {
                         if (this.instance?.isEmptyRow(this.row)) {
                             callback(true);
                             return;
                         }
 
-                        if (!value){
+                        if (!value) {
                             callback(true)
                             return;
                         }
 
-                        value = value.trim().toLowerCase()
+                        value = LocationDataManager.normalize(value);
 
                         const city = citiesOnlyNames.find(name => name === value ? value : '');
 
@@ -265,13 +415,16 @@ jQuery(document).ready(function ($) {
 
                         const cityDetails = cityWithID[value];
 
-                        cityWithID[value].zones = (await getZones(cityDetails.id))?.map((item) => {
-                            const name = item.name.trim().toLowerCase()
+                        // Fetch zones using LocationDataManager
+                        const zones = await LocationDataManager.getZones(cityDetails.id);
+
+                        cityWithID[value].zones = zones.map((item) => {
+                            const name = LocationDataManager.normalize(item.name);
                             cityWithID[value].zoneWithID[name] = item
                             cityWithID[value].zoneWithID[name].areaWithID = {}
                             cityWithID[value].zoneWithID[name].areas = []
-                            return item.name.trim().toLowerCase()
-                        })
+                            return name;
+                        });
 
                         this.instance.setCellMeta(this.row, 5, 'source', cityWithID[value].zones);
                     },
@@ -284,21 +437,28 @@ jQuery(document).ready(function ($) {
                     value: 'id',
                     allowInvalid: false,
                     filter: true,
-                    validator: async function(value, callback) {
+                    validator: async function (value, callback) {
                         if (this.instance?.isEmptyRow(this.row)) {
                             callback(true);
                             return;
                         }
 
-                        if (!value){
+                        if (!value) {
                             callback(true)
                             return;
                         }
 
-                        value = value.trim().toLowerCase()
+                        value = LocationDataManager.normalize(value);
 
-                        const cityValue = this.instance.getDataAtCell(this.row, 4)?.trim()?.toLowerCase()
-                        const zone = await cityWithID[cityValue].zones.find(name => name === value ? value : '');
+                        const cityValue = LocationDataManager.normalize(this.instance.getDataAtCell(this.row, 4));
+
+                        // Ensure zones are loaded for this city
+                        if (!cityWithID[cityValue] || !cityWithID[cityValue].zones) {
+                            callback(false);
+                            return;
+                        }
+
+                        const zone = cityWithID[cityValue].zones.find(name => name === value ? value : '');
                         if (!zone) {
                             callback(false)
                             return
@@ -307,9 +467,12 @@ jQuery(document).ready(function ($) {
 
                         const zoneDetails = cityWithID[cityValue].zoneWithID[value]
 
-                        cityWithID[cityValue].zoneWithID[value].areas = (await getAreas(zoneDetails.id))?.map((item) => {
-                            const name = item.name.trim().toLowerCase()
-                            cityWithID[cityValue].zoneWithID[value].areaWithID = item
+                        // Fetch areas using LocationDataManager
+                        const areas = await LocationDataManager.getAreas(zoneDetails.id);
+
+                        cityWithID[cityValue].zoneWithID[value].areas = areas.map((item) => {
+                            const name = LocationDataManager.normalize(item.name);
+                            cityWithID[cityValue].zoneWithID[value].areaWithID[name] = item
                             return name
                         })
 
@@ -325,22 +488,30 @@ jQuery(document).ready(function ($) {
                     value: 'id',
                     allowInvalid: true,
                     filter: true,
-                    validator: async function(value, callback) {
+                    validator: async function (value, callback) {
                         if (this.instance?.isEmptyRow(this.row)) {
                             callback(true);
                             return;
                         }
 
-                        if (!value){
+                        if (!value) {
                             callback(true)
                             return;
                         }
 
-                        value = value.trim().toLowerCase()
+                        value = LocationDataManager.normalize(value);
 
-                        const cityValue = this.instance.getDataAtCell(this.row, 4)?.trim()?.toLowerCase()
-                        const zoneValue = this.instance.getDataAtCell(this.row, 5)?.trim()?.toLowerCase()
-                        const area = await cityWithID[cityValue].zoneWithID[zoneValue].areas.find(name => name === value ? value : '');
+                        const cityValue = LocationDataManager.normalize(this.instance.getDataAtCell(this.row, 4));
+                        const zoneValue = LocationDataManager.normalize(this.instance.getDataAtCell(this.row, 5));
+
+                        if (!cityWithID[cityValue] ||
+                            !cityWithID[cityValue].zoneWithID[zoneValue] ||
+                            !cityWithID[cityValue].zoneWithID[zoneValue].areas) {
+                            callback(false);
+                            return;
+                        }
+
+                        const area = cityWithID[cityValue].zoneWithID[zoneValue].areas.find(name => name === value ? value : '');
                         if (!area) {
                             callback(false)
                             return
@@ -349,10 +520,10 @@ jQuery(document).ready(function ($) {
 
                     },
                 },
-                {data: 'recipient_address', type: 'text'},
-                {data: 'amount_to_collect', type: 'numeric'},
-                {data: 'item_description', type: 'text'},
-                {data: 'special_instruction', type: 'text'},
+                { data: 'recipient_address', type: 'text' },
+                { data: 'amount_to_collect', type: 'numeric' },
+                { data: 'item_description', type: 'text' },
+                { data: 'special_instruction', type: 'text' },
                 {
                     data: 'store_id',
                     type: 'dropdown',
@@ -414,7 +585,63 @@ jQuery(document).ready(function ($) {
             licenseKey: 'non-commercial-and-evaluation'
         });
 
+        hotInstance.getData().forEach((row, rowIndex) => {
+            // hotInstance.setDataAtCell(rowIndex, 3, "High"); // update column 3
+            const orderId = hotInstance.getDataAtCell(rowIndex, 0)
+            const orderDetails = orderBulkDetails.find((item) => {
+                return item.id === orderId
+            })
 
+            let defaultCityId = orderDetails?.shipping?.city_id ?? orderDetails?.billing?.city_id
+            let defaultZoneId = orderDetails?.shipping?.zone_id ?? orderDetails?.billing?.zone_id
+            let defaultAreaId = orderDetails?.shipping?.area_id ?? orderDetails?.billing?.area_id
+            let defaultZone = null
+
+            if (defaultCityId) {
+                let defaultCity = cities.find((city) => {
+                    return city.id === defaultCityId
+                })
+
+                const defaultCityName = LocationDataManager.normalize(defaultCity?.name);
+
+                hotInstance.setDataAtCell(rowIndex, 4, defaultCityName);
+
+                console.log(cityWithID[defaultCityName].zones)
+                // hotInstance.render();
+                if (defaultCity) {
+
+                    LocationDataManager.getZones(defaultCity.id).then((items) => {
+
+                        const defaultCityName = LocationDataManager.normalize(defaultCity.name);
+
+                        cityWithID[defaultCityName].zones = items.map(item => LocationDataManager.normalize(item.name));
+
+                        items.forEach((item) => {
+                            const name = LocationDataManager.normalize(item.name);
+                            cityWithID[defaultCityName].zoneWithID[name] = item
+                            cityWithID[defaultCityName].zoneWithID[name].areaWithID = {}
+                            cityWithID[defaultCityName].zoneWithID[name].areas = []
+                        })
+
+
+                        defaultZone = items.find((zone) => {
+                            return zone.id === defaultZoneId
+                        })
+
+                        if (defaultZone) {
+                            console.log({ defaultZone })
+                            // hotInstance.setCellMeta(rowIndex, 5, 'source', ["sagar", "dash"]);
+                            hotInstance.setDataAtCell(rowIndex, 5, LocationDataManager.normalize(defaultZone.name));
+                        }
+
+                        // hotInstance.render();
+                    })
+
+                }
+            }
+
+            console.log({ orderId, orderDetails })
+        });
     }
 
     const form = $('#wc-orders-filter');
@@ -432,61 +659,68 @@ jQuery(document).ready(function ($) {
         openModal()
     });
 
-    form.on('click', 'input[type="submit"][name="bulk_action"], button[type="submit"][name="bulk_action"]', function(e) {
+    form.on('click', 'input[type="submit"][name="bulk_action"], button[type="submit"][name="bulk_action"]', function (e) {
 
-            const action = $('select[name="action"]').val() || $('select[name="action2"]').val();
+        const action = $('select[name="action"]').val() || $('select[name="action2"]').val();
 
-            if (action === 'send_with_pathao') {
-                e.preventDefault();
-                list.empty();
+        if (action === 'send_with_pathao') {
+            e.preventDefault();
+            list.empty();
 
-                openModal()
-            }
+            openModal()
+        }
+    });
+
+
+    async function openModal() {
+
+        loading.fadeIn()
+
+        const selectedOrders = $('input[name="id[]"]:checked')
+            .map(function () {
+                return $(this).val();
+            })
+            .get();
+
+        if (selectedOrders.length === 0) {
+            alert('Please select at least one order.');
+            return;
+        }
+
+        modal.fadeIn();
+
+        // Pre-fetch all location data
+        await LocationDataManager.fetchAll();
+
+        await renderHandsontable(selectedOrders)
+
+        loading.fadeOut()
+
+        $('#modal-confirm').off('click').on('click', async function () {
+            const data = hotInstance?.getSourceData().map(item => {
+
+                const cityName = LocationDataManager.normalize(item.recipient_city);
+                const zoneName = LocationDataManager.normalize(item.recipient_zone);
+                const areaName = LocationDataManager.normalize(item.recipient_area);
+
+                item.store_id = storesWithID[item.store_id]
+                item.recipient_city = cityWithID[cityName]?.id
+                item.recipient_zone = cityWithID[cityName]?.zoneWithID[zoneName]?.id
+                item.recipient_area = cityWithID[cityName]?.zoneWithID[zoneName]?.areaWithID[areaName]?.id
+                item.delivery_type = deliveryTypesWithID[item.delivery_type]
+                item.item_type = itemTypesWithID[item.item_type]
+
+                return item
+            });
+
+            await createBulkOrder(data);
         });
 
-
-        async function openModal() {
-
-            loading.fadeIn()
-
-            const selectedOrders = $('input[name="id[]"]:checked')
-                .map(function () {
-                    return $(this).val();
-                })
-                .get();
-
-            if (selectedOrders.length === 0) {
-                alert('Please select at least one order.');
-                return;
-            }
-
-            modal.fadeIn();
-
-            await renderHandsontable(selectedOrders)
-
-            loading.fadeOut()
-
-            $('#modal-confirm').off('click').on('click', async function () {
-                const data = hotInstance?.getSourceData().map(item => {
-
-                    item.store_id = storesWithID[item.store_id]
-                    item.recipient_city = cityWithID[item.recipient_city]?.id
-                    item.recipient_zone = cityWithID[item.recipient_city]?.zoneWithID[item.recipient_zone]?.id
-                    item.recipient_area = cityWithID[item.recipient_city]?.zoneWithID[item.recipient_zone]?.areaWithID[item.recipient_area]?.id
-                    item.delivery_type = deliveryTypesWithID[item.delivery_type]
-                    item.item_type = itemTypesWithID[item.item_type]
-
-                    return item
-                });
-
-                await createBulkOrder(data);
-            });
-
-            $('#modal-cancel').off('click').on('click', function () {
-                hotInstance?.destroy();
-                list.empty();
-                modal.fadeOut();
-            });
-        }
+        $('#modal-cancel').off('click').on('click', function () {
+            hotInstance?.destroy();
+            list.empty();
+            modal.fadeOut();
+        });
+    }
 
 });

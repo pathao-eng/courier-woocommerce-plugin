@@ -64,11 +64,11 @@ jQuery(document).ready(function ($) {
 
             let address = '';
             if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
-              address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
+                address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
             } else {
-              address = `${orderData?.billing?.address_1}, ${orderData?.billing?.address_2}, ${orderData?.billing?.city}, ${orderData?.billing?.state}, ${orderData?.billing?.postcode}`;
-			}
-            
+                address = `${orderData?.billing?.address_1}, ${orderData?.billing?.address_2}, ${orderData?.billing?.city}, ${orderData?.billing?.state}, ${orderData?.billing?.postcode}`;
+            }
+
             nameInput.val(orderData?.billing?.full_name);
             phoneInput.val(orderData?.billing?.phone);
             shippingAddressInput.val(address);
@@ -285,7 +285,7 @@ jQuery(document).ready(function ($) {
 
             let options = '<option value="">Select city</option>';
             cities?.forEach(function (city) {
-                options += `<option ${ defaultCityId === city.city_id ? 'selected': ''} value="${city.city_id}">${city.city_name}</option>`;
+                options += `<option ${defaultCityId === city.city_id ? 'selected' : ''} value="${city.city_id}">${city.city_name}</option>`;
             });
 
             if (defaultCityId) {
@@ -306,7 +306,7 @@ jQuery(document).ready(function ($) {
                 const zones = response.data.data.data;
                 let options = '<option value="">Select Zone</option>';
                 zones.forEach(function (zone) {
-                    options += `<option ${ defaultZoneId === zone.zone_id ? 'selected': ''} value="${zone.zone_id}">${zone.zone_name}</option>`;
+                    options += `<option ${defaultZoneId === zone.zone_id ? 'selected' : ''} value="${zone.zone_id}">${zone.zone_name}</option>`;
                 });
 
                 if (defaultZoneId) {
@@ -328,7 +328,7 @@ jQuery(document).ready(function ($) {
                 const areas = response.data.data.data;
                 let options = '<option value="">Select Area</option>';
                 areas.forEach(function (area) {
-                    options += `<option ${ defaultAreaId === area.area_id ? 'selected': ''} value="${area.area_id}">${area.area_name}</option>`;
+                    options += `<option ${defaultAreaId === area.area_id ? 'selected' : ''} value="${area.area_id}">${area.area_name}</option>`;
                 });
                 areaDom.html(options);
             });
@@ -357,3 +357,247 @@ jQuery(document).ready(function ($) {
 
 });
 
+// Preload Button Handler
+jQuery(document).ready(function ($) {
+
+    // Location Data Manager for Preloading
+    const LocationDataManager = {
+        stores: null,
+        cities: null,
+        zones: {}, // Cache zones by cityId
+        areas: {}, // Cache areas by zoneId
+
+        // Cache configuration
+        CACHE_KEY: 'ptc_location_data',
+        CACHE_TTL: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+
+        // Promises for in-flight requests to prevent duplicates
+        _storesPromise: null,
+        _citiesPromise: null,
+        _zonesPromises: {},
+        _areasPromises: {},
+
+        // Helper to normalize names for keys
+        normalize(name) {
+            return name ? name.trim().toLowerCase() : '';
+        },
+
+        // Helper to process items in batches
+        async processBatch(items, batchSize, processFn) {
+            const results = [];
+            for (let i = 0; i < items.length; i += batchSize) {
+                const batch = items.slice(i, i + batchSize);
+                const batchResults = await Promise.all(batch.map(item => processFn(item)));
+                results.push(...batchResults);
+            }
+            return results;
+        },
+
+        saveToStorage() {
+            try {
+                const data = {
+                    timestamp: Date.now(),
+                    stores: this.stores,
+                    cities: this.cities,
+                    zones: this.zones,
+                    areas: this.areas
+                };
+                localStorage.setItem(this.CACHE_KEY, JSON.stringify(data));
+            } catch (e) {
+                console.error('Failed to save location data to storage', e);
+            }
+        },
+
+        async fetchAllWithProgress(onProgress) {
+            // 1. Fetch Cities
+            onProgress(0, 100, 'Fetching cities...');
+            const cities = await this.getCities();
+            if (!cities || cities.length === 0) {
+                onProgress(100, 100, 'No cities found.');
+                return;
+            }
+
+            // 2. Fetch Zones
+            const totalCities = cities.length;
+            let citiesProcessed = 0;
+
+            const allZones = await this.processBatch(cities, 5, async (city) => {
+                try {
+                    const zones = await this.getZones(city.id);
+                    citiesProcessed++;
+                    const percent = Math.round((citiesProcessed / totalCities) * 40); // Cities = 40% of progress
+                    onProgress(percent, 100, `Fetching zones for ${city.name}...`);
+                    return { cityId: city.id, zones };
+                } catch (e) {
+                    console.error(`Failed to fetch zones for city ${city.id}`, e);
+                    return { cityId: city.id, zones: [] };
+                }
+            });
+
+            // Flatten zones list
+            const zonesToFetch = allZones.flatMap(item => item.zones);
+            const totalZones = zonesToFetch.length;
+            let zonesProcessed = 0;
+
+            // 3. Fetch Areas
+            await this.processBatch(zonesToFetch, 5, async (zone) => {
+                try {
+                    await this.getAreas(zone.id);
+                    zonesProcessed++;
+                    const percent = 40 + Math.round((zonesProcessed / totalZones) * 50); // Areas = 50% of progress
+                    onProgress(percent, 100, `Fetching areas for ${zone.name}...`);
+                } catch (e) {
+                    console.error(`Failed to fetch areas for zone ${zone.id}`, e);
+                }
+            });
+
+            // 4. Fetch Stores
+            onProgress(90, 100, 'Fetching stores...');
+            await this.getStores();
+
+            // 5. Save
+            onProgress(95, 100, 'Saving to local storage...');
+            this.saveToStorage();
+
+            onProgress(100, 100, 'Complete!');
+        },
+
+        getStores() {
+            if (this.stores) return Promise.resolve(this.stores);
+            if (this._storesPromise) return this._storesPromise;
+
+            this._storesPromise = new Promise((resolve, reject) => {
+                $.post(ajaxurl, { action: 'get_stores' })
+                    .done(response => {
+                        this.stores = response?.data.map(store => ({
+                            id: store.store_id,
+                            name: store.store_name,
+                            is_default_store: store.is_default_store,
+                            is_active: store.is_active,
+                            selected: store.is_default_store
+                        }));
+                        resolve(this.stores);
+                    })
+                    .fail(err => {
+                        this._storesPromise = null;
+                        reject(err);
+                    });
+            });
+            return this._storesPromise;
+        },
+
+        getCities() {
+            if (this.cities) return Promise.resolve(this.cities);
+            if (this._citiesPromise) return this._citiesPromise;
+
+            this._citiesPromise = new Promise((resolve, reject) => {
+                $.post(ajaxurl, { action: 'get_cities' })
+                    .done(response => {
+                        this.cities = response?.data.map(city => ({
+                            id: city?.city_id,
+                            name: city?.city_name
+                        }));
+                        resolve(this.cities);
+                    })
+                    .fail(err => {
+                        this._citiesPromise = null;
+                        reject(err);
+                    });
+            });
+            return this._citiesPromise;
+        },
+
+        getZones(cityId) {
+            if (!cityId) return Promise.resolve([]);
+            if (this.zones[cityId]) return Promise.resolve(this.zones[cityId]);
+            if (this._zonesPromises[cityId]) return this._zonesPromises[cityId];
+
+            this._zonesPromises[cityId] = new Promise((resolve, reject) => {
+                $.post(ajaxurl, {
+                    action: 'get_zones',
+                    city_id: cityId
+                })
+                    .done(response => {
+                        const zones = response?.data?.data?.data?.map(zone => ({
+                            id: zone?.zone_id,
+                            name: zone?.zone_name
+                        })) || [];
+                        this.zones[cityId] = zones;
+                        resolve(zones);
+                    })
+                    .fail(err => {
+                        delete this._zonesPromises[cityId];
+                        reject(err);
+                    });
+            });
+            return this._zonesPromises[cityId];
+        },
+
+        getAreas(zoneId) {
+            if (!zoneId) return Promise.resolve([]);
+            if (this.areas[zoneId]) return Promise.resolve(this.areas[zoneId]);
+            if (this._areasPromises[zoneId]) return this._areasPromises[zoneId];
+
+            this._areasPromises[zoneId] = new Promise((resolve, reject) => {
+                $.post(ajaxurl, {
+                    action: 'get_areas',
+                    zone_id: zoneId
+                })
+                    .done(response => {
+                        const areas = response?.data?.data?.data?.map(area => ({
+                            id: area?.area_id,
+                            name: area?.area_name
+                        })) || [];
+                        this.areas[zoneId] = areas;
+                        resolve(areas);
+                    })
+                    .fail(err => {
+                        delete this._areasPromises[zoneId];
+                        reject(err);
+                    });
+            });
+            return this._areasPromises[zoneId];
+        }
+    };
+
+    $('#preload-city-zones-btn').on('click', async function () {
+        const $btn = $(this);
+        const $container = $('#preload-progress-container');
+        const $bar = $('#preload-progress-bar');
+        const $status = $('#preload-status-text');
+        const $percent = $('#preload-percentage');
+
+        if (confirm('This will fetch all city, zone, and area data from the API. This process may take a few minutes. Do you want to continue?')) {
+            $btn.prop('disabled', true);
+            $container.show();
+            $bar.css('width', '0%');
+            $status.text('Starting...');
+            $percent.text('0%');
+
+            try {
+                await LocationDataManager.fetchAllWithProgress((current, total, message) => {
+                    const percentage = Math.round((current / total) * 100);
+                    $bar.css('width', `${percentage}%`);
+                    $status.text(message);
+                    $percent.text(`${percentage}%`);
+                });
+
+                // Show success toast (using the existing showToast function if available in scope, or fallback)
+                // Note: showToast is defined in settings-page.php script block, not here.
+                // We can assume the user sees the "Complete!" message.
+                alert('Data synchronization complete!');
+
+            } catch (e) {
+                console.error(e);
+                alert('An error occurred during synchronization.');
+                $status.text('Error occurred.');
+                $bar.css('background', '#d63638');
+            } finally {
+                $btn.prop('disabled', false);
+                setTimeout(() => {
+                    $container.fadeOut();
+                }, 3000);
+            }
+        }
+    });
+});
