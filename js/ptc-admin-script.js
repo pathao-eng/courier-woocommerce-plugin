@@ -61,6 +61,8 @@ jQuery(document).ready(function ($) {
 
     let populateModalData = async function () {
         if (orderData) {
+            // Try to load from storage first
+            LocationDataManager.loadFromStorage();
 
             let address = '';
             if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
@@ -107,7 +109,8 @@ jQuery(document).ready(function ($) {
             let defaultCityId = orderData?.shipping?.city_id ?? orderData?.billing?.city_id
             let defaultZoneId = orderData?.shipping?.zone_id ?? orderData?.billing?.city_id
             let defaultAreaId = orderData?.shipping?.area_id ?? orderData?.billing?.city_id
-            await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId)
+            await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId);
+            await populateStores();
         }
 
     }
@@ -276,9 +279,6 @@ jQuery(document).ready(function ($) {
         const zoneDom = $('#zone');
         const areaDom = $('#area');
 
-        // Try to load from storage first
-        LocationDataManager.loadFromStorage();
-
         const cities = await LocationDataManager.getCities();
         let options = '<option value="">Select city</option>';
         cities?.forEach(function (city) {
@@ -330,27 +330,19 @@ jQuery(document).ready(function ($) {
         }
     }
 
-});
-
-jQuery(document).ready(function ($) {
-
-    $.post(ajaxurl, {
-        action: 'get_stores',
-    }, function (response) {
-        const stores = response.data;
-
+    async function populateStores() {
+        const stores = await LocationDataManager.getStores();
         let options = '<option value="">Select store</option>';
-        stores.forEach(function (store) {
-
-            let selected = store.is_default_store ? 'selected' : ''
-
-            options += `<option ${selected} value="${store.store_id}">${store.store_name}</option>`;
+        stores?.forEach(function (store) {
+            let selected = store.is_default_store ? 'selected' : '';
+            options += `<option ${selected} value="${store.id}">${store.name}</option>`;
         });
-
         $('#store').html(options);
-    });
+    }
 
 });
+
+
 
 // Preload Button Handler
 jQuery(document).ready(function ($) {
