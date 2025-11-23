@@ -112,24 +112,25 @@ jQuery(document).ready(function ($) {
             }
         },
 
-        async fetchAll() {
-            // 1. Try to load from storage first
-            if (this.loadFromStorage()) {
-                // If we have data, we might still want to ensure stores are loaded if they weren't part of the cache logic initially,
-                // but assuming saveToStorage saves everything, we are good.
-                // Just to be safe, if stores are missing (e.g. old cache version), fetch them.
-                if (!this.stores) await this.getStores();
+        async fetchAllWithProgress(onProgress) {
+            // 1. Fetch Cities
+            onProgress(0, 100, 'Fetching cities...');
+            const cities = await this.getCities();
+            if (!cities || cities.length === 0) {
+                onProgress(100, 100, 'No cities found.');
                 return;
             }
 
-            // 2. Fetch Cities
-            const cities = await this.getCities();
-            if (!cities || cities.length === 0) return;
+            // 2. Fetch Zones
+            const totalCities = cities.length;
+            let citiesProcessed = 0;
 
-            // 3. Fetch Zones for all Cities (Batch size 5)
             const allZones = await this.processBatch(cities, 5, async (city) => {
                 try {
                     const zones = await this.getZones(city.id);
+                    citiesProcessed++;
+                    const percent = Math.round((citiesProcessed / totalCities) * 40); // Cities = 40% of progress
+                    onProgress(percent, 100, `Fetching zones for ${city.name}...`);
                     return { cityId: city.id, zones };
                 } catch (e) {
                     console.error(`Failed to fetch zones for city ${city.id}`, e);
@@ -137,23 +138,43 @@ jQuery(document).ready(function ($) {
                 }
             });
 
-            // Flatten zones list for area fetching
+            // Flatten zones list
             const zonesToFetch = allZones.flatMap(item => item.zones);
+            const totalZones = zonesToFetch.length;
+            let zonesProcessed = 0;
 
-            // 4. Fetch Areas for all Zones (Batch size 5)
+            // 3. Fetch Areas
             await this.processBatch(zonesToFetch, 5, async (zone) => {
                 try {
                     await this.getAreas(zone.id);
+                    zonesProcessed++;
+                    const percent = 40 + Math.round((zonesProcessed / totalZones) * 50); // Areas = 50% of progress
+                    onProgress(percent, 100, `Fetching areas for ${zone.name}...`);
                 } catch (e) {
                     console.error(`Failed to fetch areas for zone ${zone.id}`, e);
                 }
             });
 
-            // 5. Ensure stores are fetched
+            // 4. Fetch Stores
+            onProgress(90, 100, 'Fetching stores...');
             await this.getStores();
 
-            // 6. Save to storage
+            // 5. Save
+            onProgress(95, 100, 'Saving to local storage...');
             this.saveToStorage();
+
+            onProgress(100, 100, 'Complete!');
+        },
+
+        async fetchAll() {
+            // Deprecated: Use fetchAllWithProgress or loadFromStorage directly
+            // Kept for backward compatibility if needed, but logic moved to explicit preload flow
+            if (this.loadFromStorage()) {
+                if (!this.stores) await this.getStores();
+                return;
+            }
+            // Fallback to old behavior if called directly (though UI now blocks this)
+            await this.fetchAllWithProgress(() => { });
         },
 
         getStores() {
@@ -253,6 +274,45 @@ jQuery(document).ready(function ($) {
             return this._areasPromises[zoneId];
         }
     };
+
+    // Preload Button Handler in Bulk Modal
+    $('#ptc-bulk-preload-btn').on('click', async function () {
+        const $btn = $(this);
+        const $progressContainer = $('#ptc-bulk-preload-progress');
+        const $bar = $('#ptc-bulk-preload-bar');
+        const $status = $('#ptc-bulk-preload-status');
+        const $percent = $('#ptc-bulk-preload-percent');
+
+        $btn.prop('disabled', true);
+        $progressContainer.show();
+        $bar.css('width', '0%');
+        $status.text('Starting...');
+        $percent.text('0%');
+
+        try {
+            await LocationDataManager.fetchAllWithProgress((current, total, message) => {
+                const percentage = Math.round((current / total) * 100);
+                $bar.css('width', `${percentage}%`);
+                $status.text(message);
+                $percent.text(`${percentage}%`);
+            });
+
+            // Complete
+            $('#ptc-bulk-preload-container').hide();
+            $('#hot-container').show();
+            $('#ptc-modal-footer').show();
+
+            // Resume normal flow
+            const selectedOrders = getSelectedOrders();
+            await renderHandsontable(selectedOrders);
+
+        } catch (e) {
+            console.error(e);
+            $status.text('Error occurred. Please try again.');
+            $bar.css('background', '#d63638');
+            $btn.prop('disabled', false);
+        }
+    });
 
     function getOrders(orderIds) {
         return new Promise((resolve, reject) => {
@@ -665,48 +725,94 @@ jQuery(document).ready(function ($) {
     });
 
 
+    function getSelectedOrders() {
+        const selected = [];
+        $('input[name="post[]"]:checked').each(function () {
+            selected.push($(this).val());
+        });
+        // support for new woocommerce order table
+        $('.wc-order-bulk-action-check:checked').each(function () {
+            selected.push($(this).val());
+        });
+        // support for legacy/other selection method if needed (from old openModal)
+        $('input[name="id[]"]:checked').each(function () {
+            selected.push($(this).val());
+        });
+
+        return [...new Set(selected)];
+    }
+
     async function openModal() {
-
-        loading.fadeIn()
-
-        const selectedOrders = $('input[name="id[]"]:checked')
-            .map(function () {
-                return $(this).val();
-            })
-            .get();
+        const selectedOrders = getSelectedOrders();
 
         if (selectedOrders.length === 0) {
             alert('Please select at least one order.');
             return;
         }
 
-        modal.fadeIn();
+        modal.show();
+        list.empty();
 
-        // Pre-fetch all location data
-        await LocationDataManager.fetchAll();
+        // Reset UI states
+        $('#ptc-bulk-preload-container').hide();
+        $('#hot-container').hide();
+        $('#ptc-modal-footer').hide();
+        loading.hide();
 
-        await renderHandsontable(selectedOrders)
+        // Check if data is cached
+        if (LocationDataManager.loadFromStorage()) {
+            // Data exists, proceed normally
+            $('#hot-container').show();
+            $('#ptc-modal-footer').show();
+            loading.show();
+            await renderHandsontable(selectedOrders);
+            loading.hide();
+        } else {
+            // Data missing, show preload UI
+            $('#ptc-bulk-preload-container').show();
+        }
 
-        loading.fadeOut()
-
+        // Event handlers for modal buttons
         $('#modal-confirm').off('click').on('click', async function () {
-            const data = hotInstance?.getSourceData().map(item => {
+            if (!hotInstance) return;
+            const data = hotInstance.getSourceData();
+            // Filter out empty rows or invalid data if necessary
+            // The validator logic in Handsontable handles visual feedback, but we should ensure we don't send garbage
+            const validData = data.filter(row => row.recipient_name && row.recipient_phone && row.recipient_address);
 
-                const cityName = LocationDataManager.normalize(item.recipient_city);
-                const zoneName = LocationDataManager.normalize(item.recipient_zone);
-                const areaName = LocationDataManager.normalize(item.recipient_area);
+            if (validData.length === 0) {
+                alert('No valid data to send.');
+                return;
+            }
 
-                item.store_id = storesWithID[item.store_id]
-                item.recipient_city = cityWithID[cityName]?.id
-                item.recipient_zone = cityWithID[cityName]?.zoneWithID[zoneName]?.id
-                item.recipient_area = cityWithID[cityName]?.zoneWithID[zoneName]?.areaWithID[areaName]?.id
-                item.delivery_type = deliveryTypesWithID[item.delivery_type]
-                item.item_type = itemTypesWithID[item.item_type]
+            loading.show();
+            $('#modal-confirm').prop('disabled', true);
+            list.empty();
 
-                return item
-            });
+            for (const order of validData) {
+                // Map data to backend format
+                const orderData = {
+                    ...order,
+                    store_id: storesWithID[order.store_id],
+                    recipient_city: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.id,
+                    recipient_zone: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.id,
+                    recipient_area: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.areaWithID[LocationDataManager.normalize(order.recipient_area)]?.id,
+                    delivery_type: deliveryTypesWithID[order.delivery_type],
+                    item_type: itemTypesWithID[order.item_type]
+                };
 
-            await createBulkOrder(data);
+                try {
+                    const response = await createOrder(orderData);
+                    const li = $('<li>').text(`Order ${order.merchant_order_id}: Success (Consignment ID: ${response.consignment_id})`).css('color', 'green');
+                    list.append(li);
+                } catch (error) {
+                    const li = $('<li>').text(`Order ${order.merchant_order_id}: Failed (${error.message || 'Unknown error'})`).css('color', 'red');
+                    list.append(li);
+                }
+            }
+
+            loading.hide();
+            $('#modal-confirm').prop('disabled', false);
         });
 
         $('#modal-cancel').off('click').on('click', function () {
