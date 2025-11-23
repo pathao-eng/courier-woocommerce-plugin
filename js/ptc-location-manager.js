@@ -32,7 +32,6 @@ window.LocationDataManager = {
 
             const data = JSON.parse(cached);
 
-            this.stores = data.stores;
             this.cities = data.cities;
             this.zones = data.zones;
             this.areas = data.areas;
@@ -47,7 +46,6 @@ window.LocationDataManager = {
         try {
             const data = {
                 timestamp: Date.now(),
-                stores: this.stores,
                 cities: this.cities,
                 zones: this.zones,
                 areas: this.areas
