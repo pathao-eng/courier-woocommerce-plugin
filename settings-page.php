@@ -170,7 +170,7 @@ function pt_hms_settings_page_callback()
             <div style="margin-top: 15px;">
                 <button type="button" id="preload-city-zones-btn" class="button button-secondary">
                     <span class="dashicons dashicons-database-import" style="margin: 4px 5px 0 0;"></span>
-                    Preload City Zones
+                    Preload City, Zone & Area
                 </button>
             </div>
 

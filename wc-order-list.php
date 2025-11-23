@@ -222,10 +222,10 @@ function ptc_render_bulk_modal_content()
 
                  <!-- Preload Container -->
                  <div id="ptc-bulk-preload-container" style="display: none; text-align: center; margin: 40px 0;">
-                    <p style="margin-bottom: 15px; font-size: 16px;">City and Zone data is missing. Please preload it to continue.</p>
+                    <p style="margin-bottom: 15px; font-size: 16px;">City, Zone, and Area data is missing. Please preload it to continue.</p>
                     <button type="button" id="ptc-bulk-preload-btn" class="button button-primary button-large">
                         <span class="dashicons dashicons-database-import" style="margin: 4px 5px 0 0;"></span>
-                        Preload City Zones
+                        Preload City, Zone & Area
                     </button>
                     
                     <div id="ptc-bulk-preload-progress" style="display: none; margin-top: 20px; text-align: left;">
