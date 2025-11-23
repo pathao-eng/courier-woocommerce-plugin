@@ -271,68 +271,63 @@ jQuery(document).ready(function ($) {
         }
     }
 
-    function populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId) {
-
-
+    async function populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId) {
         const cityDom = $('#city');
         const zoneDom = $('#zone');
         const areaDom = $('#area');
 
-        $.post(ajaxurl, {
-            action: 'get_cities',
-        }, function (response) {
-            const cities = response.data;
+        // Try to load from storage first
+        LocationDataManager.loadFromStorage();
 
-            let options = '<option value="">Select city</option>';
-            cities?.forEach(function (city) {
-                options += `<option ${defaultCityId === city.city_id ? 'selected' : ''} value="${city.city_id}">${city.city_name}</option>`;
-            });
-
-            if (defaultCityId) {
-                cityDom.trigger('change')
-            }
-
-            cityDom.html(options);
+        const cities = await LocationDataManager.getCities();
+        let options = '<option value="">Select city</option>';
+        cities?.forEach(function (city) {
+            options += `<option ${defaultCityId == city.id ? 'selected' : ''} value="${city.id}">${city.name}</option>`;
         });
 
-        cityDom.change(function () {
+        cityDom.html(options);
+
+        if (defaultCityId) {
+            cityDom.trigger('change');
+        }
+
+        cityDom.off('change').on('change', async function () {
             zoneDom.html('<option value="">Select Zone</option>');
             areaDom.html('<option value="">Select Area</option>');
             const city_id = $(this).val();
-            $.post(ajaxurl, {
-                action: 'get_zones',
-                city_id: city_id
-            }, function (response) {
-                const zones = response.data.data.data;
-                let options = '<option value="">Select Zone</option>';
-                zones.forEach(function (zone) {
-                    options += `<option ${defaultZoneId === zone.zone_id ? 'selected' : ''} value="${zone.zone_id}">${zone.zone_name}</option>`;
-                });
+            if (!city_id) return;
 
-                if (defaultZoneId) {
-                    zoneDom.trigger('change')
-                }
-
-                zoneDom.html(options);
+            const zones = await LocationDataManager.getZones(city_id);
+            let options = '<option value="">Select Zone</option>';
+            zones.forEach(function (zone) {
+                options += `<option ${defaultZoneId == zone.id ? 'selected' : ''} value="${zone.id}">${zone.name}</option>`;
             });
+            zoneDom.html(options);
+
+            if (defaultZoneId && zones.some(z => z.id == defaultZoneId)) {
+                zoneDom.trigger('change');
+                defaultZoneId = null;
+            } \
         });
 
-        zoneDom.change(function () {
+        zoneDom.off('change').on('change', async function () {
             areaDom.html('<option value="">Select Area</option>');
-
             const zone_id = $(this).val();
-            $.post(ajaxurl, {
-                action: 'get_areas',
-                zone_id: zone_id
-            }, function (response) {
-                const areas = response.data.data.data;
-                let options = '<option value="">Select Area</option>';
-                areas.forEach(function (area) {
-                    options += `<option ${defaultAreaId === area.area_id ? 'selected' : ''} value="${area.area_id}">${area.area_name}</option>`;
-                });
-                areaDom.html(options);
+            if (!zone_id) return;
+
+            const areas = await LocationDataManager.getAreas(zone_id);
+            let options = '<option value="">Select Area</option>';
+            areas.forEach(function (area) {
+                options += `<option ${defaultAreaId == area.id ? 'selected' : ''} value="${area.id}">${area.name}</option>`;
             });
+            areaDom.html(options);
+            defaultAreaId = null;
         });
+
+        if (defaultCityId) {
+            cityDom.trigger('change');
+            defaultCityId = null;
+        }
     }
 
 });
@@ -359,9 +354,6 @@ jQuery(document).ready(function ($) {
 
 // Preload Button Handler
 jQuery(document).ready(function ($) {
-
-    // Location Data Manager for Preloading
-    // LocationDataManager is now loaded from js/ptc-location-manager.js
 
     $('#preload-city-zones-btn').on('click', async function () {
         const $btn = $(this);
