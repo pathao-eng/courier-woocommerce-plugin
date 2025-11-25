@@ -135,7 +135,7 @@ You can now create orders in bulk!
 - v.1.1.3
    - Bug Fixes
       - Separate all queries
-      - Fis sanitisation issues
+      - Fix sanitization issues
       - Fix edit URL issues
       - Fix all order count issues
       - Refactor code 
