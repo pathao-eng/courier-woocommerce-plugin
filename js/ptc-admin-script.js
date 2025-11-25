@@ -103,7 +103,6 @@ jQuery(document).ready(function ($) {
             });
 
             orderTotalItemsDom.html(orderData?.total_items);
-
             orderItemsDom.html(orderItems);
 
             let defaultCityId = orderData?.shipping?.city_id ?? orderData?.billing?.city_id
@@ -111,8 +110,11 @@ jQuery(document).ready(function ($) {
             let defaultAreaId = orderData?.shipping?.area_id ?? orderData?.billing?.city_id
             await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId);
             await populateStores();
-        }
 
+            // Autofill item description with product name + quantity, each on a new line
+            const productDescriptions = orderData?.items?.map(item => `${item.name} x${item.quantity}`).join('\n');
+            itemDescriptionInput.val(productDescriptions);
+        }
     }
 
     let clearModalData = function () {
