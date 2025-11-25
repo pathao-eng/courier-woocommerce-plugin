@@ -61,11 +61,11 @@ jQuery(document).ready(function ($) {
 
             let address = '';
             if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
-              address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
+                address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
             } else {
-              address = `${orderData?.billing?.address_1}, ${orderData?.billing?.address_2}, ${orderData?.billing?.city}, ${orderData?.billing?.state}, ${orderData?.billing?.postcode}`;
-			}
-            
+                address = `${orderData?.billing?.address_1}, ${orderData?.billing?.address_2}, ${orderData?.billing?.city}, ${orderData?.billing?.state}, ${orderData?.billing?.postcode}`;
+            }
+
             nameInput.val(orderData?.billing?.full_name);
             phoneInput.val(orderData?.billing?.phone);
             shippingAddressInput.val(address);
@@ -98,10 +98,12 @@ jQuery(document).ready(function ($) {
             });
 
             orderTotalItemsDom.html(orderData?.total_items);
-
             orderItemsDom.html(orderItems);
-        }
 
+            // Autofill item description with product name + quantity, each on a new line
+            const productDescriptions = orderData?.items?.map(item => `${item.name} x${item.quantity}`).join('\n');
+            itemDescriptionInput.val(productDescriptions);
+        }
     }
 
     let clearModalData = function () {
