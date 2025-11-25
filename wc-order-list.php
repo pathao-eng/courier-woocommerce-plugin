@@ -139,9 +139,16 @@ function ptc_render_store_modal_content()
           <span class="close">&times;</span>
           <h2>Send this through Pathao Courier</h2>
           <hr>
-          <?php if ($order): 
-            
-            ?>
+          <?php if ($order): ?>
+          
+              <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img" alt="Pathao Courier Logo" style="
+                   height: 200px;
+                   display: none; 
+                   position: absolute;
+                   left: 42%;
+                   top: 50%;
+               ">
+               
               <div class="order-info">
                   <h3>Order Information</h3>
                   <p><strong>Total Price:</strong> <span id="ptc_wc_order_total_price"> </span> </p>
@@ -212,7 +219,27 @@ function ptc_render_bulk_modal_content()
                  <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img"
                      alt="Pathao Courier Logo" 
                      style="height: 200px; display: none; ">
-                 <div style="margin-top:15px; text-align:right;">
+
+                 <!-- Preload Container -->
+                 <div id="ptc-bulk-preload-container" style="display: none; text-align: center; margin: 40px 0;">
+                    <p style="margin-bottom: 15px; font-size: 16px;">City, Zone, and Area data is missing. Please preload it to continue.</p>
+                    <button type="button" id="ptc-bulk-preload-btn" class="button button-primary button-large">
+                        <span class="dashicons dashicons-database-import" style="margin: 4px 5px 0 0;"></span>
+                        Preload City, Zone & Area
+                    </button>
+                    
+                    <div id="ptc-bulk-preload-progress" style="display: none; margin-top: 20px; text-align: left;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span id="ptc-bulk-preload-status">Starting...</span>
+                            <span id="ptc-bulk-preload-percent">0%</span>
+                        </div>
+                        <div style="background: #f0f0f1; border-radius: 4px; height: 20px; overflow: hidden;">
+                            <div id="ptc-bulk-preload-bar" style="background: #2271b1; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                 </div>
+
+                 <div id="ptc-modal-footer" style="margin-top:15px; text-align:right;">
                     <button type="button" id="modal-cancel" class="button">Cancel</button>
                     <button type="button" id="modal-confirm" class="button button-primary">Confirm</button>
                 </div>

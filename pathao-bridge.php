@@ -216,7 +216,6 @@ function makeDto($order_data): array
         'item_description' => sanitize_text_field($order_data['item_description'] ?? '')
     ];
 
-
     if (!empty($order_data['recipient_city'])) {
         $payload['recipient_city'] = (int)sanitize_text_field($order_data['recipient_city']);
     }
@@ -245,15 +244,15 @@ function pt_hms_create_new_order_bulk($order_data)
         'orders' => $order_data
     ];
 
-    $args = array(
-        'headers' => array(
+    $args = [
+        'headers' => [
             'Authorization' => 'Bearer ' . $token,
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
             'source' => 'woocommerce'
-        ),
+        ],
         'body' => json_encode($payload)
-    );
+    ];
 
     $response = wp_remote_post($api_url, $args);
 

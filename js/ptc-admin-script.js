@@ -21,10 +21,11 @@ jQuery(document).ready(function ($) {
     const storeIdInput = $('#store');
     const deliveryTypeInput = $('#ptc_wc_delivery_type');
     const itemTypeInput = $('#ptc_wc_item_type');
+    const loading = $("#ptc-loading-img");
 
     $('.ptc-open-modal-button').on('click', async function (e) {
         e.preventDefault();
-        hubSelection.hide();
+        //hubSelection.hide();
         var orderID = $(this).data('order-id');
         $('#ptc_wc_order_number').val(orderID);  // Set the Order ID in a hidden field
         ptcModal.show();
@@ -47,25 +48,29 @@ jQuery(document).ready(function ($) {
     });
 
     let getOrderInfoAndPopulateModalData = async function (orderID) {
+        loading.fadeIn()
         $.post(ajaxurl, {
             action: 'get_wc_order',
             order_id: orderID
-        }, function (response) {
+        }, async function (response) {
             orderData = response.data;
-            populateModalData();
+            await populateModalData();
+            loading.fadeOut()
         });
     }
 
     let populateModalData = async function () {
         if (orderData) {
+            // Try to load from storage first
+            LocationDataManager.loadFromStorage();
 
             let address = '';
             if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
-              address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
+                address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
             } else {
-              address = `${orderData?.billing?.address_1}, ${orderData?.billing?.address_2}, ${orderData?.billing?.city}, ${orderData?.billing?.state}, ${orderData?.billing?.postcode}`;
-			}
-            
+                address = `${orderData?.billing?.address_1}, ${orderData?.billing?.address_2}, ${orderData?.billing?.city}, ${orderData?.billing?.state}, ${orderData?.billing?.postcode}`;
+            }
+
             nameInput.val(orderData?.billing?.full_name);
             phoneInput.val(orderData?.billing?.phone);
             shippingAddressInput.val(address);
@@ -98,10 +103,18 @@ jQuery(document).ready(function ($) {
             });
 
             orderTotalItemsDom.html(orderData?.total_items);
-
             orderItemsDom.html(orderItems);
-        }
 
+            let defaultCityId = orderData?.shipping?.city_id ?? orderData?.billing?.city_id
+            let defaultZoneId = orderData?.shipping?.zone_id ?? orderData?.billing?.city_id
+            let defaultAreaId = orderData?.shipping?.area_id ?? orderData?.billing?.city_id
+            await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId);
+            await populateStores();
+
+            // Autofill item description with product name + quantity, each on a new line
+            const productDescriptions = orderData?.items?.map(item => `${item.name} x${item.quantity}`).join('\n');
+            itemDescriptionInput.val(productDescriptions);
+        }
     }
 
     let clearModalData = function () {
@@ -185,7 +198,7 @@ jQuery(document).ready(function ($) {
                 ) {
                     response.responseJSON.data.errors['recipient_address'] = 'Wrong address, please select the correct city and zone instead';
 
-                    hubSelection.show();
+                    //hubSelection.show();
                 }
 
                 showErrorMessages(response?.responseJSON?.data.errors);
@@ -262,72 +275,118 @@ jQuery(document).ready(function ($) {
             $(`#${key}`).next().html('');
         }
     }
-});
 
-jQuery(document).ready(function ($) {
+    async function populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId) {
+        const cityDom = $('#city');
+        const zoneDom = $('#zone');
+        const areaDom = $('#area');
 
-    $.post(ajaxurl, {
-        action: 'get_cities',
-    }, function (response) {
-        const cities = response.data;
-
+        const cities = await LocationDataManager.getCities();
         let options = '<option value="">Select city</option>';
         cities?.forEach(function (city) {
-            options += `<option value="${city.city_id}">${city.city_name}</option>`;
+            options += `<option ${defaultCityId == city.id ? 'selected' : ''} value="${city.id}">${city.name}</option>`;
         });
 
-        $('#city').html(options);
-    });
+        cityDom.html(options);
 
-    $.post(ajaxurl, {
-        action: 'get_stores',
-    }, function (response) {
-        const stores = response.data;
+        if (defaultCityId) {
+            cityDom.trigger('change');
+        }
 
-        let options = '<option value="">Select store</option>';
-        stores.forEach(function (store) {
+        cityDom.off('change').on('change', async function () {
+            zoneDom.html('<option value="">Select Zone</option>');
+            areaDom.html('<option value="">Select Area</option>');
+            const city_id = $(this).val();
+            if (!city_id) return;
 
-            let selected = store.is_default_store ? 'selected' : ''
-
-            options += `<option ${selected} value="${store.store_id}">${store.store_name}</option>`;
-        });
-
-        $('#store').html(options);
-    });
-
-
-    $('#city').change(function () {
-        $('#zone').html('<option value="">Select Zone</option>');
-        $('#area').html('<option value="">Select Area</option>');
-        const city_id = $(this).val();
-        $.post(ajaxurl, {
-            action: 'get_zones',
-            city_id: city_id
-        }, function (response) {
-            const zones = response.data.data.data;
+            const zones = await LocationDataManager.getZones(city_id);
             let options = '<option value="">Select Zone</option>';
             zones.forEach(function (zone) {
-                options += `<option value="${zone.zone_id}">${zone.zone_name}</option>`;
+                options += `<option ${defaultZoneId == zone.id ? 'selected' : ''} value="${zone.id}">${zone.name}</option>`;
             });
-            $('#zone').html(options);
+            zoneDom.html(options);
+
+            if (defaultZoneId && zones.some(z => z.id == defaultZoneId)) {
+                zoneDom.trigger('change');
+                defaultZoneId = null;
+            }
         });
-    });
 
-    $('#zone').change(function () {
-        $('#area').html('<option value="">Select Area</option>');
+        zoneDom.off('change').on('change', async function () {
+            areaDom.html('<option value="">Select Area</option>');
+            const zone_id = $(this).val();
+            if (!zone_id) return;
 
-        const zone_id = $(this).val();
-        $.post(ajaxurl, {
-            action: 'get_areas',
-            zone_id: zone_id
-        }, function (response) {
-            const areas = response.data.data.data;
+            const areas = await LocationDataManager.getAreas(zone_id);
             let options = '<option value="">Select Area</option>';
             areas.forEach(function (area) {
-                options += `<option value="${area.area_id}">${area.area_name}</option>`;
+                options += `<option ${defaultAreaId == area.id ? 'selected' : ''} value="${area.id}">${area.name}</option>`;
             });
-            $('#area').html(options);
+            areaDom.html(options);
+            defaultAreaId = null;
         });
-    });
+
+        if (defaultCityId) {
+            cityDom.trigger('change');
+            defaultCityId = null;
+        }
+    }
+
+    async function populateStores() {
+        const stores = await LocationDataManager.getStores();
+        let options = '<option value="">Select store</option>';
+        stores?.forEach(function (store) {
+            let selected = store.is_default_store ? 'selected' : '';
+            options += `<option ${selected} value="${store.id}">${store.name}</option>`;
+        });
+        $('#store').html(options);
+    }
+
 });
 
+
+
+// Preload Button Handler
+jQuery(document).ready(function ($) {
+
+    $('#preload-city-zones-btn').on('click', async function () {
+        const $btn = $(this);
+        const $container = $('#preload-progress-container');
+        const $bar = $('#preload-progress-bar');
+        const $status = $('#preload-status-text');
+        const $percent = $('#preload-percentage');
+
+        if (confirm('This will fetch all city, zone, and area data from the API. This process may take a few minutes. Do you want to continue?')) {
+            $btn.prop('disabled', true);
+            $container.show();
+            $bar.css('width', '0%');
+            $status.text('Starting...');
+            $percent.text('0%');
+
+            try {
+                await LocationDataManager.fetchAllWithProgress((current, total, message) => {
+                    const percentage = Math.round((current / total) * 100);
+                    $bar.css('width', `${percentage}%`);
+                    $status.text(message);
+                    $percent.text(`${percentage}%`);
+                });
+
+                // Show success toast (using the existing showToast function if available in scope, or fallback)
+                // Note: showToast is defined in settings-page.php script block, not here.
+                // We can assume the user sees the "Complete!" message.
+                alert('Data synchronization complete!');
+
+            } catch (e) {
+                console.error(e);
+                alert('An error occurred during synchronization.');
+                $status.text('Error occurred.');
+                $bar.css('background', '#d63638');
+            } finally {
+                $btn.prop('disabled', false);
+                setTimeout(() => {
+                    $container.fadeOut();
+                }, 3000);
+            }
+        }
+    });
+});

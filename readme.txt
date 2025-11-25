@@ -17,6 +17,7 @@ Whether you need seamless package tracking or a user-friendly way to manage deli
 - Sync orders to the Pathao Merchant Panel
 - Webhook Implementations
 - Realtime order status updates
+- Bulk Order Creation
 
 == Screenshots ==
 1. Installation
@@ -28,3 +29,6 @@ Whether you need seamless package tracking or a user-friendly way to manage deli
 7. Click Send with Pathao
 8. Add Receiver Name, Receiver Phone Number, Receiver Address, Receiver City and others necessary information
 9. Click Send with Pathao Courier
+10. Preload City, Zone & Area (Settings)
+11. Bulk Order Modal Preload Prompt
+12. Bulk Order Modal Grid View
