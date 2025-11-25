@@ -162,6 +162,29 @@ function pt_hms_settings_page_callback()
             </div>
         </div>
 
+        <!-- Data Synchronization Section -->
+        <div class="card" style="max-width: 800px; padding: 20px; margin-top: 20px;">
+            <h2 style="margin-top: 0;">Data Synchronization</h2>
+            <p class="description">Preload city, zone, and area data to speed up order creation.</p>
+
+            <div style="margin-top: 15px;">
+                <button type="button" id="preload-city-zones-btn" class="button button-secondary">
+                    <span class="dashicons dashicons-database-import" style="margin: 4px 5px 0 0;"></span>
+                    Preload City, Zone & Area
+                </button>
+            </div>
+
+            <div id="preload-progress-container" style="display: none; margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span id="preload-status-text" style="font-weight: 600;">Starting...</span>
+                    <span id="preload-percentage">0%</span>
+                </div>
+                <div style="background: #f0f0f1; border-radius: 4px; height: 20px; overflow: hidden;">
+                    <div id="preload-progress-bar" style="background: #2271b1; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+
         <script type="text/javascript">
             jQuery(document).ready(function ($) {
                 function showToast(title, message, type = 'error') {

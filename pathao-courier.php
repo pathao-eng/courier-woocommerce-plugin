@@ -16,6 +16,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+defined( 'PTC_CACHE_GROUP' ) || define( 'PTC_CACHE_GROUP', 'ptc_cache_' );
+defined( 'PTC_CACHE_TTL' ) || define( 'PTC_CACHE_TTL', 86400 * 7 );
 defined( 'PTC_PLUGIN_URL' ) || define( 'PTC_PLUGIN_URL', WP_PLUGIN_URL . '/' . plugin_basename( dirname( __FILE__ ) ) . '/' );
 defined( 'PTC_PLUGIN_DIR' ) || define( 'PTC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 defined( 'PTC_PLUGIN_TEMPLATE_DIR' ) || define( 'PTC_PLUGIN_TEMPLATE_DIR', plugin_dir_path( __FILE__ ) . 'templates/');
@@ -45,9 +47,17 @@ function enqueue_custom_admin_script($hook) {
     );
 
     wp_enqueue_script(
+        'ptc-location-manager',
+        plugin_dir_url(__FILE__) . 'js/ptc-location-manager.js',
+        ['jquery'],
+        filemtime(plugin_dir_path( __FILE__ ) . '/js/ptc-location-manager.js'),
+        true
+    );
+
+    wp_enqueue_script(
         'ptc-admin-js',
         plugin_dir_url(__FILE__) . 'js/ptc-admin-script.js',
-        ['jquery'],
+        ['jquery', 'ptc-location-manager'],
         filemtime(plugin_dir_path( __FILE__ ) . '/js/ptc-admin-script.js'),
         true
     );
@@ -66,7 +76,7 @@ function enqueue_custom_admin_script($hook) {
     wp_enqueue_script(
         'ptc-bulk-action',
         plugin_dir_url( __FILE__ ) . 'js/ptc-bulk-action.js',
-        ['jquery'],
+        ['jquery', 'ptc-location-manager'],
         filemtime(plugin_dir_path( __FILE__ ) . '/js/ptc-bulk-action.js'),
         true
     );

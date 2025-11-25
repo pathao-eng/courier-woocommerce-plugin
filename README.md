@@ -1,4 +1,4 @@
-# Pathao Courier Plugin For WordPress Woocommerce
+# Pathao Courier Plugin For WordPress WooCommerce
 
 ## Description
 
@@ -12,7 +12,8 @@ Whether you need seamless package tracking or a user-friendly way to manage deli
 - Easy to implement
 - Sync orders to the Pathao Merchant Panel
 - Webhook Implementations
-- Realtime order status updates
+- Real-time order status updates
+- Bulk Order Creation
 
 ## Requirements
 - Requires at least: 6.0
@@ -50,18 +51,18 @@ Whether you need seamless package tracking or a user-friendly way to manage deli
 
      ![img_4.png](screenshots%2Fimg_4.png)
 
-   - Client ID: Enter your client ID and Client Secret Key. which you will get from Pathao [Merchant Panel](https://merchant.pathao.com/courier/developer-api).
+   - Client ID: Enter your client ID and Client Secret Key, which you will get from Pathao [Merchant Panel](https://merchant.pathao.com/courier/developer-api).
 
      ![img_5.png](screenshots%2Fimg_5.png)
 
-   - Webhook URL: Enter your webhook URL which you will get from Pathao [Merchant Panel](https://merchant.pathao.com/courier/developer-api).
+   - Webhook URL: Enter your webhook URL, which you will get from Pathao [Merchant Panel](https://merchant.pathao.com/courier/developer-api).
 
      ![img_6.png](screenshots%2Fimg_6.png)
 
    - Click 'Save Changes' to save your settings.
 ## Usage
 
-To use follow these steps:
+To use, follow these steps:
 
 1. Add any product to the cart. Then go to the checkout page.
 2. Fill up the billing details and place the order.
@@ -73,6 +74,44 @@ To use follow these steps:
 6. You will see a modal with the order details. Fill in the details and click on the 'Send to Pathao' button.
 
 ![img_8.png](screenshots%2Fimg_8.png)
+
+### Bulk Order Creation
+
+You can now create orders in bulk!
+
+1. **Preload Location Data (Recommended):**
+   - Go to **Settings > Pathao Courier**.
+   - Click the **Preload City, Zone & Area** button. This fetches and caches all location data for faster loading.
+
+   ![img_9.png](screenshots%2Fimg_9.png)
+
+2. **Select Orders:**
+   - Go to **WooCommerce > Orders**.
+   - Select the orders you want to send.
+   - Choose **Send with Pathao** from the Bulk Actions dropdown and click **Apply**.
+
+3. **Bulk Order Modal:**
+   - If you haven't preloaded data, you will see a prompt to fetch it.
+
+     ![img_10.png](screenshots%2Fimg_10.png)
+
+   - Once loaded, you will see a grid view of your orders.
+   - **City, Zone, and Area** will be automatically selected if you store data for any of these meta keys.
+   ```
+   _billing_pathao_city
+   _billing_pathao_zone
+   _billing_pathao_area
+
+   _shipping_pathao_city
+   _shipping_pathao_zone
+   _shipping_pathao_area
+      
+   ```
+   - You can edit any details directly in the grid.
+
+     ![img_11.png](screenshots%2Fimg_11.png)
+
+   - Click **Confirm** to create all orders at once.
 
 ## Changelog
 - v.1.2.0
@@ -96,7 +135,7 @@ To use follow these steps:
 - v.1.1.3
    - Bug Fixes
       - Separate all queries
-      - Fis sanitization issues
+      - Fis sanitisation issues
       - Fix edit URL issues
       - Fix all order count issues
       - Refactor code 
@@ -112,14 +151,14 @@ To use follow these steps:
   - Features 
     - Added order creation without city/zone/area.
     - Separate order list template
-    - New template for the "All Orders" page and Added a general settings page.
+    - New template for the "All Orders" page and added a general settings page.
     - Added date and limit filter on the template page.
   - Bug Fixes
     - Fixed CSS style for modal.
     - Changed in validation UI response.
     - Changed default weight value
     - Default weight 1kg to 0.5kg
-    - Refactored the codes.
+    - Refactored the code.
     - Refactored all endpoints.
 
 ## Note
