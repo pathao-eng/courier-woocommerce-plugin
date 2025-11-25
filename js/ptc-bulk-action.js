@@ -6,6 +6,7 @@ jQuery(document).ready(function ($) {
     const modal = $("#ptc-bulk-modal-overlay");
 
     function createBulkOrder(orders) {
+        $('#modal-confirm').prop('disabled', true);
         loading.fadeIn()
         return $.post({
             url: ajaxurl,
@@ -44,6 +45,8 @@ jQuery(document).ready(function ($) {
                 if (!Object.keys(errors).length) {
                     list.append(`<li style="color:#d33">Unexpected error: ${errText || 'Unknown'}</li>`);
                 }
+
+                $('#modal-confirm').prop('disabled', false);
             }
         });
     }
@@ -560,7 +563,6 @@ jQuery(document).ready(function ($) {
         }
 
         loading.show();
-        $('#modal-confirm').prop('disabled', true);
         list.empty();
 
         const ordersToCreate = validData.map(order => ({
@@ -576,7 +578,7 @@ jQuery(document).ready(function ($) {
         await createBulkOrder(ordersToCreate);
 
         loading.hide();
-        $('#modal-confirm').prop('disabled', false);
+
     });
 
     $('#modal-cancel').on('click', function () {
