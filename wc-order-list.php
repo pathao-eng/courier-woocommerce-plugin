@@ -139,22 +139,19 @@ function ptc_render_store_modal_content()
           <span class="close">&times;</span>
           <h2>Send this through Pathao Courier</h2>
           <hr>
-          <?php if ($order): ?>
-          
-              <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img" alt="Pathao Courier Logo" style="
-                   height: 200px;
-                   display: none;">
-               
-              <div class="order-info">
-                  <h3>Order Information</h3>
-                  <p><strong>Total Price:</strong> <span id="ptc_wc_order_total_price"> </span> </p>
-                  <p><strong>Payment Status:</strong> <span id="ptc_wc_order_payment_status"> </span> </p>
-                  <h4>Order Items: <span id="ptc_wc_total_order_items"></span></h4>
-                  <ul id="ptc_wc_order_items">
-                  </ul>
-              </div>
-              <hr>
-          <?php endif; ?>
+          <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img" alt="Pathao Courier Logo" style="
+               height: 200px;
+               display: none;">
+           
+          <div class="order-info">
+              <h3>Order Information</h3>
+              <p><strong>Total Price:</strong> <span id="ptc_wc_order_total_price"> </span> </p>
+              <p><strong>Payment Status:</strong> <span id="ptc_wc_order_payment_status"> </span> </p>
+              <h4>Order Items: <span id="ptc_wc_total_order_items"></span></h4>
+              <ul id="ptc_wc_order_items">
+              </ul>
+          </div>
+          <hr>
 
           <!-- Preload Container -->
           <div id="ptc-single-preload-container" style="display: none; text-align: center; margin: 20px 0;">
@@ -182,9 +179,9 @@ function ptc_render_store_modal_content()
                 ' . $SecondaryPhoneForm . '
             </div>
             <div class="row">
-              <?= render_stores_dropdown(); ?>
-              <?= render_item_type_dropdown(); ?>
-              <?= render_order_type_dropdown(); ?>
+              ' . $storeForm . '
+              ' . $itemType . '
+              ' . $deliveryType . '
             </div>
             <div class="row">
               ' . $orderNumber . '
@@ -194,21 +191,17 @@ function ptc_render_store_modal_content()
             </div>
             <div class="row">
             ' . $addressForm . '
-            ' . $storeForm . '
             </div>
 
             <div class="row">
-          
               ' . $citiesForm . '
               ' . $zoneForm . '
               ' . $areaForm . '
-           </div>
+            </div>
             <div class="row">
-              ' . $deliveryType . '
-              ' . $itemType . '
               ' . $itemDescription . '
               ' . $specialInstruction . '
-           </div>
+            </div>
           </div>
           <button id="ptc-submit-button" type="button">Send with Pathao Courier</button>
       </div>
