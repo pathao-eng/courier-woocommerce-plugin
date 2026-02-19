@@ -94,7 +94,7 @@ function pt_hms_get_user()
 {
     $url = get_base_url() . '/aladdin/api/v1/user/short-info';
     $token = pt_hms_get_token();
-
+    
     if ( ! $token ) {
         return null;
     }

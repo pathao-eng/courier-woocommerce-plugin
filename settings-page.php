@@ -374,15 +374,12 @@ function pt_hms_settings_page_callback()
                             renderMerchantInfo(cached);
                             if (cached.data.country_id === 1) $('#ptc-data-sync-card').hide();
                         }
-                    } else {
-                        fetchMerchantInfo();
                     }
                 } catch (e) {}
-
+                fetchMerchantInfo();
 
                 $('#ptc-refresh-merchant-btn').on('click', function () {
                     fetchMerchantInfo();
-                    // Also refresh stores when refreshing merchant info
                     if (typeof LocationDataManager !== 'undefined') {
                         LocationDataManager.getStores(true).catch(function(err) {
                             console.error('Failed to refresh stores:', err);
