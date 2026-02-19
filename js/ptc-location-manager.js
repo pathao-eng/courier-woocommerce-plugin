@@ -230,8 +230,15 @@ window.LocationDataManager = {
         await this.fetchAllWithProgress(() => { });
     },
 
-    getStores() {
-        if (this.stores) return Promise.resolve(this.stores);
+    getStores(forceRefresh = false) {
+        if (forceRefresh) {
+            this.stores = null;
+            this._storesPromise = null;
+            try {
+                localStorage.removeItem(this.STORES_CACHE_KEY);
+            } catch (e) {}
+        }
+        if (!forceRefresh && this.stores) return Promise.resolve(this.stores);
         try {
             const storesCached = localStorage.getItem(this.STORES_CACHE_KEY);
             if (storesCached) {
