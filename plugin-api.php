@@ -5,10 +5,13 @@ add_action('wp_ajax_get_stores', 'pt_hms_ajax_get_stores');
 add_action('wp_ajax_get_cities', 'pt_hms_ajax_get_cities');
 add_action('wp_ajax_get_zones', 'pt_hms_ajax_get_zones');
 add_action('wp_ajax_get_areas', 'pt_hms_ajax_get_areas');
+add_action('wp_ajax_get_zone_list_bulk', 'pt_hms_ajax_get_zone_list_bulk');
+add_action('wp_ajax_get_area_list_bulk', 'pt_hms_ajax_get_area_list_bulk');
 add_action('wp_ajax_create_order_to_ptc', 'ajax_pt_hms_create_new_order');
 add_action('wp_ajax_create_bulk_order_to_ptc', 'ajax_pt_hms_create_new_order_bulk');
 add_action('wp_ajax_get_wc_order', 'ajax_pt_wc_order_details');
 add_action('wp_ajax_get_wc_order_bulk', 'ajax_pt_wc_order_details_bulk');
+add_action('wp_ajax_get_ptc_user', 'ajax_pt_hms_get_user');
 
 $orderEventsStatusMap = [
     'order.created' => 'Order_Created',
@@ -91,6 +94,33 @@ function pt_hms_ajax_get_areas()
     } else {
         wp_send_json_error('Missing zone_id parameter.');
     }
+}
+
+function pt_hms_ajax_get_zone_list_bulk()
+{
+    $zones = pt_hms_get_zone_list_bulk();
+    wp_send_json_success($zones);
+}
+
+function pt_hms_ajax_get_area_list_bulk()
+{
+    $areas = pt_hms_get_area_list_bulk();
+    wp_send_json_success($areas);
+}
+
+function ajax_pt_hms_get_user()
+{
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( array( 'message' => 'Unauthorized' ), 403 );
+    }
+
+    $response = pt_hms_get_user();
+
+    if ( $response === null ) {
+        wp_send_json_error( array( 'message' => 'Could not fetch user. Check API credentials and token.' ) );
+    }
+
+    wp_send_json_success( $response );
 }
 
 function ajax_pt_hms_create_new_order()

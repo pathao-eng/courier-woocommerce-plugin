@@ -121,7 +121,7 @@ $search = $_GET['search'] ?? '';
 
     <p class="search-box">
         <label class="screen-reader-text" for="post-search-input">Search orders:</label>
-        <input type="search" id="post-search-input" name="search" value="<?php echo $search ?>">
+        <input type="search" id="post-search-input" name="search" value="<?php echo esc_attr( $search ); ?>">
         <input type="hidden" name="page" class="post_type_page" value="<?php echo PTC_PLUGIN_PAGE_TYPE ?>">
         <input type="submit" id="search-submit" class="button" value="Search orders">
     </p>

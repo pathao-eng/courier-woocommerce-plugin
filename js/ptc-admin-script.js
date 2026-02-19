@@ -1,6 +1,8 @@
 jQuery(document).ready(function ($) {
 
     let orderData = {};
+    /** When true, merchant country_id is 1: hide city/zone/area and do not fetch them */
+    let ptcSkipLocationFields = false;
     const nameInput = $('#ptc_wc_order_name');
     const phoneInput = $('#ptc_wc_order_phone');
     const shippingAddressInput = $('#ptc_wc_shipping_address');
@@ -61,8 +63,37 @@ jQuery(document).ready(function ($) {
 
     let populateModalData = async function () {
         if (orderData) {
-            // Try to load from storage first
-            LocationDataManager.loadFromStorage();
+            // Resolve whether to skip city/zone/area (country_id === 1)
+            try {
+                const userRes = await LocationDataManager.getUserInfo();
+                ptcSkipLocationFields = !!(userRes && userRes.data && userRes.data.country_id === 1);
+            } catch (e) {
+                ptcSkipLocationFields = false;
+            }
+
+            if (ptcSkipLocationFields) {
+                hubSelection.hide();
+                cityInput.removeAttr('required');
+                zoneInput.removeAttr('required');
+                areaInput.removeAttr('required');
+            } else {
+                hubSelection.show();
+                cityInput.attr('required', 'required');
+                zoneInput.attr('required', 'required');
+            }
+
+            // When country_id !== 1, require preloaded location data
+            const hasData = LocationDataManager.loadFromStorage();
+            if (!ptcSkipLocationFields && !hasData) {
+                $('#ptc-single-preload-container').show();
+                $('.courier-settings').hide();
+                $('#ptc-submit-button').hide();
+                return;
+            }
+
+            $('#ptc-single-preload-container').hide();
+            $('.courier-settings').show();
+            $('#ptc-submit-button').show();
 
             let address = '';
             if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
@@ -105,11 +136,13 @@ jQuery(document).ready(function ($) {
             orderTotalItemsDom.html(orderData?.total_items);
             orderItemsDom.html(orderItems);
 
-            let defaultCityId = orderData?.shipping?.city_id ?? orderData?.billing?.city_id
-            let defaultZoneId = orderData?.shipping?.zone_id ?? orderData?.billing?.city_id
-            let defaultAreaId = orderData?.shipping?.area_id ?? orderData?.billing?.city_id
-            await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId);
             await populateStores();
+            if (!ptcSkipLocationFields) {
+                let defaultCityId = orderData?.shipping?.city_id ?? orderData?.billing?.city_id;
+                let defaultZoneId = orderData?.shipping?.zone_id ?? orderData?.billing?.zone_id;
+                let defaultAreaId = orderData?.shipping?.area_id ?? orderData?.billing?.area_id;
+                await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId);
+            }
 
             // Autofill item description with product name + quantity, each on a new line
             const productDescriptions = orderData?.items?.map(item => `${item.name} x${item.quantity}`).join('\n');
@@ -335,10 +368,14 @@ jQuery(document).ready(function ($) {
     async function populateStores() {
         const stores = await LocationDataManager.getStores();
         let options = '<option value="">Select store</option>';
+
+        let defaultStoreId = stores.find(store => store.is_default_store)?.id || stores[0]?.id;
+
         stores?.forEach(function (store) {
-            let selected = store.is_default_store ? 'selected' : '';
+            let selected = store.id == defaultStoreId ? 'selected' : '';
             options += `<option ${selected} value="${store.id}">${store.name}</option>`;
         });
+
         $('#store').html(options);
     }
 
@@ -349,6 +386,43 @@ jQuery(document).ready(function ($) {
 // Preload Button Handler
 jQuery(document).ready(function ($) {
 
+    $('#ptc-single-preload-btn').on('click', async function () {
+        const $btn = $(this);
+        const $progressContainer = $('#ptc-single-preload-progress');
+        const $bar = $('#ptc-single-preload-bar');
+        const $status = $('#ptc-single-preload-status');
+        const $percent = $('#ptc-single-preload-percent');
+
+        $btn.prop('disabled', true);
+        $progressContainer.show();
+        $bar.css('width', '0%');
+        $status.text('Starting...');
+        $percent.text('0%');
+
+        try {
+            await LocationDataManager.fetchAllWithProgress((current, total, message) => {
+                const percentage = Math.round((current / total) * 100);
+                $bar.css('width', `${percentage}%`);
+                $status.text(message);
+                $percent.text(`${percentage}%`);
+            });
+
+            // Complete
+            $('#ptc-single-preload-container').hide();
+            $('.courier-settings').show();
+            $('#ptc-submit-button').show();
+
+            alert('Data loaded successfully! Please close and reopen the modal to populate data.');
+            $('#ptc-custom-modal').hide();
+
+        } catch (e) {
+            console.error(e);
+            $status.text('Error occurred. Please try again.');
+            $bar.css('background', '#d63638');
+            $btn.prop('disabled', false);
+        }
+    });
+
     $('#preload-city-zones-btn').on('click', async function () {
         const $btn = $(this);
         const $container = $('#preload-progress-container');
@@ -356,7 +430,7 @@ jQuery(document).ready(function ($) {
         const $status = $('#preload-status-text');
         const $percent = $('#preload-percentage');
 
-        if (confirm('This will fetch all city, zone, and area data from the API. This process may take a few minutes. Do you want to continue?')) {
+        if (confirm('This will fetch all city, zone, area, and store data from the API. This process may take a few minutes. Do you want to continue?')) {
             $btn.prop('disabled', true);
             $container.show();
             $bar.css('width', '0%');
