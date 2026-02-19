@@ -160,6 +160,25 @@ function ptc_render_store_modal_content()
               <hr>
           <?php endif; ?>
 
+          <!-- Preload Container -->
+          <div id="ptc-single-preload-container" style="display: none; text-align: center; margin: 20px 0;">
+            <p style="margin-bottom: 15px; font-size: 16px;">City, Zone, and Area data is missing. Please preload it to continue.</p>
+            <button type="button" id="ptc-single-preload-btn" class="button button-primary button-large">
+                <span class="dashicons dashicons-database-import" style="margin: 4px 5px 0 0;"></span>
+                Preload City, Zone, Area & Store
+            </button>
+            
+            <div id="ptc-single-preload-progress" style="display: none; margin-top: 20px; text-align: left;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span id="ptc-single-preload-status">Starting...</span>
+                    <span id="ptc-single-preload-percent">0%</span>
+                </div>
+                <div style="background: #f0f0f1; border-radius: 4px; height: 20px; overflow: hidden;">
+                    <div id="ptc-single-preload-bar" style="background: #2271b1; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+          </div>
+
           <div class="courier-settings">
             <div class="row">
                 ' . $nameForm . '

@@ -62,7 +62,18 @@ jQuery(document).ready(function ($) {
     let populateModalData = async function () {
         if (orderData) {
             // Try to load from storage first
-            LocationDataManager.loadFromStorage();
+            const hasData = LocationDataManager.loadFromStorage();
+
+            if (!hasData) {
+                $('#ptc-single-preload-container').show();
+                $('.courier-settings').hide();
+                $('#ptc-submit-button').hide();
+                return; // Stop execution until data is loaded
+            } else {
+                $('#ptc-single-preload-container').hide();
+                $('.courier-settings').show();
+                $('#ptc-submit-button').show();
+            }
 
             let address = '';
             if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
@@ -353,6 +364,43 @@ jQuery(document).ready(function ($) {
 
 // Preload Button Handler
 jQuery(document).ready(function ($) {
+
+    $('#ptc-single-preload-btn').on('click', async function () {
+        const $btn = $(this);
+        const $progressContainer = $('#ptc-single-preload-progress');
+        const $bar = $('#ptc-single-preload-bar');
+        const $status = $('#ptc-single-preload-status');
+        const $percent = $('#ptc-single-preload-percent');
+
+        $btn.prop('disabled', true);
+        $progressContainer.show();
+        $bar.css('width', '0%');
+        $status.text('Starting...');
+        $percent.text('0%');
+
+        try {
+            await LocationDataManager.fetchAllWithProgress((current, total, message) => {
+                const percentage = Math.round((current / total) * 100);
+                $bar.css('width', `${percentage}%`);
+                $status.text(message);
+                $percent.text(`${percentage}%`);
+            });
+
+            // Complete
+            $('#ptc-single-preload-container').hide();
+            $('.courier-settings').show();
+            $('#ptc-submit-button').show();
+
+            alert('Data loaded successfully! Please close and reopen the modal to populate data.');
+            $('#ptc-custom-modal').hide();
+
+        } catch (e) {
+            console.error(e);
+            $status.text('Error occurred. Please try again.');
+            $bar.css('background', '#d63638');
+            $btn.prop('disabled', false);
+        }
+    });
 
     $('#preload-city-zones-btn').on('click', async function () {
         const $btn = $(this);
