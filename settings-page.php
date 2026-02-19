@@ -90,19 +90,7 @@ function pt_hms_settings_page_callback()
             <?php endif; ?>
         </div>
 
-        <!-- Merchant Info (fetched from API, stored in localStorage) -->
-        <div class="card" id="ptc-merchant-info-card" style="max-width: 800px; padding: 20px; margin-top: 20px;">
-            <h2 style="margin-top: 0;">Merchant Info</h2>
-            <div id="ptc-merchant-info-content">
-                <p class="description">Loading…</p>
-            </div>
-            <p style="margin-top: 12px;">
-                <button type="button" id="ptc-refresh-merchant-btn" class="button button-secondary">
-                    <span class="dashicons dashicons-update" style="margin: 4px 5px 0 0; vertical-align: middle;"></span>
-                    Refresh merchant info
-                </button>
-            </p>
-        </div>
+
 
         <!-- Add Toast Container -->
         <div id="ptc-toast-container" style="position: fixed; top: 50px; right: 20px; z-index: 9999;"></div>
@@ -176,6 +164,22 @@ function pt_hms_settings_page_callback()
             </div>
         </div>
 
+        
+        <!-- Merchant Info (fetched from API, stored in localStorage) -->
+        <div class="card" id="ptc-merchant-info-card" style="max-width: 800px; padding: 20px; margin-top: 20px;">
+            <h2 style="margin-top: 0;">Merchant Info</h2>
+            <div id="ptc-merchant-info-content">
+                <p class="description">Loading…</p>
+            </div>
+            <p style="margin-top: 12px;">
+                <button type="button" id="ptc-refresh-merchant-btn" class="button button-secondary">
+                    <span class="dashicons dashicons-update" style="margin: 4px 5px 0 0; vertical-align: middle;"></span>
+                    Refresh merchant info
+                </button>
+            </p>
+        </div>
+
+        
         <!-- Data Synchronization Section (hidden when country_id = 1) -->
         <div id="ptc-data-sync-card" class="card" style="max-width: 800px; padding: 20px; margin-top: 20px;">
             <h2 style="margin-top: 0;">Data Synchronization</h2>
@@ -370,9 +374,11 @@ function pt_hms_settings_page_callback()
                             renderMerchantInfo(cached);
                             if (cached.data.country_id === 1) $('#ptc-data-sync-card').hide();
                         }
+                    } else {
+                        fetchMerchantInfo();
                     }
                 } catch (e) {}
-                fetchMerchantInfo();
+
 
                 $('#ptc-refresh-merchant-btn').on('click', function () {
                     fetchMerchantInfo();

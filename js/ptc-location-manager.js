@@ -7,6 +7,7 @@ window.LocationDataManager = {
     userInfo: null, // Cached user/merchant info from /aladdin/api/v1/user
 
     CACHE_KEY: 'ptc_location_data',
+    STORES_CACHE_KEY: 'ptc_stores',
     USER_CACHE_KEY: 'ptc_user',
 
     _storesPromise: null,
@@ -36,9 +37,17 @@ window.LocationDataManager = {
             const data = JSON.parse(cached);
 
             this.cities = data.cities;
-            this.stores = data.stores;
-            this.zones = data.zones;
-            this.areas = data.areas;
+            this.zones = data.zones || {};
+            this.areas = data.areas || {};
+            // Backward compat: old cache may have stores; overwrite with dedicated key if present
+            this.stores = data.stores || null;
+
+            const storesCached = localStorage.getItem(this.STORES_CACHE_KEY);
+            if (storesCached) {
+                try {
+                    this.stores = JSON.parse(storesCached);
+                } catch (e) {}
+            }
             return true;
         } catch (e) {
             console.error('Failed to load location data from storage', e);
@@ -51,13 +60,23 @@ window.LocationDataManager = {
             const data = {
                 timestamp: Date.now(),
                 cities: this.cities,
-                stores: this.stores,
                 zones: this.zones,
                 areas: this.areas
             };
             localStorage.setItem(this.CACHE_KEY, JSON.stringify(data));
         } catch (e) {
             console.error('Failed to save location data to storage', e);
+        }
+        this.saveStoresToStorage();
+    },
+
+    saveStoresToStorage() {
+        try {
+            if (this.stores != null) {
+                localStorage.setItem(this.STORES_CACHE_KEY, JSON.stringify(this.stores));
+            }
+        } catch (e) {
+            console.error('Failed to save stores to storage', e);
         }
     },
 
@@ -213,6 +232,13 @@ window.LocationDataManager = {
 
     getStores() {
         if (this.stores) return Promise.resolve(this.stores);
+        try {
+            const storesCached = localStorage.getItem(this.STORES_CACHE_KEY);
+            if (storesCached) {
+                this.stores = JSON.parse(storesCached);
+                return Promise.resolve(this.stores);
+            }
+        } catch (e) {}
         if (this._storesPromise) return this._storesPromise;
 
         this._storesPromise = new Promise((resolve, reject) => {
@@ -225,6 +251,7 @@ window.LocationDataManager = {
                         is_active: store.is_active,
                         selected: store.is_default_store
                     }));
+                    this.saveStoresToStorage();
                     resolve(this.stores);
                 })
                 .fail(err => {
