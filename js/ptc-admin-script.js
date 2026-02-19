@@ -346,14 +346,13 @@ jQuery(document).ready(function ($) {
     async function populateStores() {
         const stores = await LocationDataManager.getStores();
         let options = '<option value="">Select store</option>';
+
+        let defaultStoreId = stores.find(store => store.is_default_store)?.id || stores[0]?.id;
+
         stores?.forEach(function (store) {
-            let selected = store.is_default_store ? 'selected' : '';
+            let selected = store.id == defaultStoreId ? 'selected' : '';
             options += `<option ${selected} value="${store.id}">${store.name}</option>`;
         });
-
-        if (stores?.length == 1) {
-            options += `<option selected value="${stores[0].id}">${stores[0].name}</option>`;
-        }
 
         $('#store').html(options);
     }
