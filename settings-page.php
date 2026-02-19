@@ -365,7 +365,6 @@ function pt_hms_settings_page_callback()
                         });
                 }
 
-                // Show cached first, then refresh from API
                 try {
                     var raw = localStorage.getItem(PTC_USER_STORAGE_KEY);
                     if (raw) {
@@ -373,10 +372,11 @@ function pt_hms_settings_page_callback()
                         if (cached && cached.data) {
                             renderMerchantInfo(cached);
                             if (cached.data.country_id === 1) $('#ptc-data-sync-card').hide();
+                        } else {
+                            fetchMerchantInfo();
                         }
                     }
                 } catch (e) {}
-                fetchMerchantInfo();
 
                 // AJAX-submit the settings form so we can trigger other actions without a full reload
                 var $settingsForm = $('form[action="options.php"]');
