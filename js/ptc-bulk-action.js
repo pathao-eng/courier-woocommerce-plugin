@@ -4,6 +4,8 @@ jQuery(document).ready(function ($) {
     const list = $("#ptc-response-list");
     const loading = $("#ptc-bulk-loading-img");
     const modal = $("#ptc-bulk-modal-overlay");
+    /** When true, merchant country_id is 1: skip city/zone/area columns and fetching */
+    let ptcSkipLocationFields = false;
 
     function createBulkOrder(orders) {
         $('#modal-confirm').prop('disabled', true);
@@ -174,10 +176,16 @@ jQuery(document).ready(function ($) {
     async function renderHandsontable(selectedOrders) {
         const container = document.getElementById('hot-container');
 
-        const [storesData, citiesData] = await Promise.all([
-            LocationDataManager.getStores(),
-            LocationDataManager.getCities()
-        ]);
+        // Check country_id to determine if we skip location fields
+        try {
+            const userRes = await LocationDataManager.getUserInfo();
+            ptcSkipLocationFields = !!(userRes && userRes.data && userRes.data.country_id === 1);
+        } catch (e) {
+            ptcSkipLocationFields = false;
+        }
+
+        const storesData = await LocationDataManager.getStores();
+        const citiesData = ptcSkipLocationFields ? [] : await LocationDataManager.getCities();
 
         stores = storesData;
         const storesOnlyNames = stores?.map((item) => {
@@ -186,7 +194,7 @@ jQuery(document).ready(function ($) {
         })
 
         const cities = citiesData;
-        const citiesOnlyNames = cities?.map((item) => {
+        const citiesOnlyNames = ptcSkipLocationFields ? [] : cities?.map((item) => {
             const name = LocationDataManager.normalize(item.name);
             cityWithID[name] = item
             cityWithID[name].zoneWithID = {}
@@ -209,13 +217,17 @@ jQuery(document).ready(function ($) {
         const orderBulkDetails = await getOrders(selectedOrders.join(','))
         const data = (orderBulkDetails)?.map(order => populateBulkModalData(order, stores, deliveryTypes, itemTypes));
 
-        hotInstance = new Handsontable(container, {
-            data: data,
-            columns: [
-                { data: 'merchant_order_id', readOnly: true },
-                { data: 'recipient_name', type: 'text' },
-                { data: 'recipient_phone', type: 'text' },
-                { data: 'recipient_secondary_phone', type: 'text' },
+        // Build columns array conditionally based on country_id
+        const columns = [
+            { data: 'merchant_order_id', readOnly: true },
+            { data: 'recipient_name', type: 'text' },
+            { data: 'recipient_phone', type: 'text' },
+            { data: 'recipient_secondary_phone', type: 'text' },
+        ];
+
+        // Add city/zone/area columns only if country_id !== 1
+        if (!ptcSkipLocationFields) {
+            columns.push(
                 {
                     data: 'recipient_city',
                     type: 'dropdown',
@@ -351,7 +363,12 @@ jQuery(document).ready(function ($) {
                         callback(true)
 
                     },
-                },
+                }
+            );
+        }
+
+        // Add remaining columns
+        columns.push(
                 { data: 'recipient_address', type: 'text' },
                 { data: 'amount_to_collect', type: 'numeric' },
                 { data: 'item_description', type: 'text' },
@@ -390,26 +407,35 @@ jQuery(document).ready(function ($) {
                 {
                     data: 'item_weight',
                     type: 'numeric',
-                },
-            ],
-            colHeaders: [
-                'Order ID',
-                'Recipient Name',
-                'Recipient Phone',
-                'Recipient Secondary Phone',
-                'Recipient City',
-                'Recipient Zone',
-                'Recipient Area',
-                'Address',
-                'Collectable Amount',
-                'Note',
-                'Special Instruction',
-                'Store',
-                'Delivery Type',
-                'Item Type',
-                'Quantity',
-                'Weight',
-            ],
+                }
+        );
+
+        // Build colHeaders conditionally
+        const colHeaders = [
+            'Order ID',
+            'Recipient Name',
+            'Recipient Phone',
+            'Recipient Secondary Phone',
+        ];
+        if (!ptcSkipLocationFields) {
+            colHeaders.push('Recipient City', 'Recipient Zone', 'Recipient Area');
+        }
+        colHeaders.push(
+            'Address',
+            'Collectable Amount',
+            'Note',
+            'Special Instruction',
+            'Store',
+            'Delivery Type',
+            'Item Type',
+            'Quantity',
+            'Weight'
+        );
+
+        hotInstance = new Handsontable(container, {
+            data: data,
+            columns: columns,
+            colHeaders: colHeaders,
             rowHeaders: true,
             width: '100%',
             height: 300,
@@ -417,7 +443,10 @@ jQuery(document).ready(function ($) {
             licenseKey: 'non-commercial-and-evaluation'
         });
 
-        await prefillOrderLocations(hotInstance, orderBulkDetails, cities);
+        // Only prefill locations if country_id !== 1
+        if (!ptcSkipLocationFields) {
+            await prefillOrderLocations(hotInstance, orderBulkDetails, cities);
+        }
     }
 
     async function prefillOrderLocations(hotInstance, orderBulkDetails, cities) {
@@ -540,16 +569,25 @@ jQuery(document).ready(function ($) {
         $('#ptc-modal-footer').hide();
         loading.hide();
 
-        // Check if data is cached
-        if (LocationDataManager.loadFromStorage()) {
-            // Data exists, proceed normally
+        // Check country_id first
+        try {
+            const userRes = await LocationDataManager.getUserInfo();
+            ptcSkipLocationFields = !!(userRes && userRes.data && userRes.data.country_id === 1);
+        } catch (e) {
+            ptcSkipLocationFields = false;
+        }
+
+        // If country_id === 1, skip preload check and show table directly
+        // Otherwise, check if location data is cached
+        if (ptcSkipLocationFields || LocationDataManager.loadFromStorage()) {
+            // Data exists or country_id === 1, proceed normally
             $('#hot-container').show();
             $('#ptc-modal-footer').show();
             loading.show();
             await renderHandsontable(selectedOrders);
             loading.hide();
         } else {
-            // Data missing, show preload UI
+            // Data missing and country_id !== 1, show preload UI
             $('#ptc-bulk-preload-container').show();
         }
     }
@@ -569,15 +607,21 @@ jQuery(document).ready(function ($) {
         loading.show();
         list.empty();
 
-        const ordersToCreate = validData.map(order => ({
-            ...order,
-            store_id: storesWithID[order.store_id],
-            recipient_city: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.id,
-            recipient_zone: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.id,
-            recipient_area: cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.areaWithID[LocationDataManager.normalize(order.recipient_area)]?.id,
-            delivery_type: deliveryTypesWithID[order.delivery_type],
-            item_type: itemTypesWithID[order.item_type]
-        }));
+        const ordersToCreate = validData.map(order => {
+            const mappedOrder = {
+                ...order,
+                store_id: storesWithID[order.store_id],
+                delivery_type: deliveryTypesWithID[order.delivery_type],
+                item_type: itemTypesWithID[order.item_type]
+            };
+            // Only map city/zone/area if country_id !== 1
+            if (!ptcSkipLocationFields) {
+                mappedOrder.recipient_city = cityWithID[LocationDataManager.normalize(order.recipient_city)]?.id;
+                mappedOrder.recipient_zone = cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.id;
+                mappedOrder.recipient_area = cityWithID[LocationDataManager.normalize(order.recipient_city)]?.zoneWithID[LocationDataManager.normalize(order.recipient_zone)]?.areaWithID[LocationDataManager.normalize(order.recipient_area)]?.id;
+            }
+            return mappedOrder;
+        });
 
         await createBulkOrder(ordersToCreate);
 

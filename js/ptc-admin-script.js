@@ -1,6 +1,8 @@
 jQuery(document).ready(function ($) {
 
     let orderData = {};
+    /** When true, merchant country_id is 1: hide city/zone/area and do not fetch them */
+    let ptcSkipLocationFields = false;
     const nameInput = $('#ptc_wc_order_name');
     const phoneInput = $('#ptc_wc_order_phone');
     const shippingAddressInput = $('#ptc_wc_shipping_address');
@@ -61,19 +63,37 @@ jQuery(document).ready(function ($) {
 
     let populateModalData = async function () {
         if (orderData) {
-            // Try to load from storage first
-            const hasData = LocationDataManager.loadFromStorage();
+            // Resolve whether to skip city/zone/area (country_id === 1)
+            try {
+                const userRes = await LocationDataManager.getUserInfo();
+                ptcSkipLocationFields = !!(userRes && userRes.data && userRes.data.country_id === 1);
+            } catch (e) {
+                ptcSkipLocationFields = false;
+            }
 
-            if (!hasData) {
+            if (ptcSkipLocationFields) {
+                hubSelection.hide();
+                cityInput.removeAttr('required');
+                zoneInput.removeAttr('required');
+                areaInput.removeAttr('required');
+            } else {
+                hubSelection.show();
+                cityInput.attr('required', 'required');
+                zoneInput.attr('required', 'required');
+            }
+
+            // When country_id !== 1, require preloaded location data
+            const hasData = LocationDataManager.loadFromStorage();
+            if (!ptcSkipLocationFields && !hasData) {
                 $('#ptc-single-preload-container').show();
                 $('.courier-settings').hide();
                 $('#ptc-submit-button').hide();
-                return; // Stop execution until data is loaded
-            } else {
-                $('#ptc-single-preload-container').hide();
-                $('.courier-settings').show();
-                $('#ptc-submit-button').show();
+                return;
             }
+
+            $('#ptc-single-preload-container').hide();
+            $('.courier-settings').show();
+            $('#ptc-submit-button').show();
 
             let address = '';
             if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
@@ -116,11 +136,13 @@ jQuery(document).ready(function ($) {
             orderTotalItemsDom.html(orderData?.total_items);
             orderItemsDom.html(orderItems);
 
-            let defaultCityId = orderData?.shipping?.city_id ?? orderData?.billing?.city_id
-            let defaultZoneId = orderData?.shipping?.zone_id ?? orderData?.billing?.city_id
-            let defaultAreaId = orderData?.shipping?.area_id ?? orderData?.billing?.city_id
-            await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId);
             await populateStores();
+            if (!ptcSkipLocationFields) {
+                let defaultCityId = orderData?.shipping?.city_id ?? orderData?.billing?.city_id;
+                let defaultZoneId = orderData?.shipping?.zone_id ?? orderData?.billing?.zone_id;
+                let defaultAreaId = orderData?.shipping?.area_id ?? orderData?.billing?.area_id;
+                await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId);
+            }
 
             // Autofill item description with product name + quantity, each on a new line
             const productDescriptions = orderData?.items?.map(item => `${item.name} x${item.quantity}`).join('\n');
