@@ -371,7 +371,9 @@ function pt_hms_settings_page_callback()
                         var cached = JSON.parse(raw);
                         if (cached && cached.data) {
                             renderMerchantInfo(cached);
-                            if (cached.data.country_id === 1) $('#ptc-data-sync-card').hide();
+                            if (cached.data.country_id === 1) {
+                                $('#ptc-data-sync-card').hide()
+                            };
                         } else {
                             fetchMerchantInfo();
                         }
