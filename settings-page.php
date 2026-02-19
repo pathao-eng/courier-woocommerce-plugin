@@ -1,6 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
-defined('PTC_PLUGIN_ORDERS_PAGE_TYPE') || define('PTC_PLUGIN_PAGE_TYPE', 'pt_hms_orders');
+defined('PTC_PLUGIN_PAGE_TYPE') || define('PTC_PLUGIN_PAGE_TYPE', 'pt_hms_orders');
 defined('PTC_PLUGIN_SETTINGS_PAGE_TYPE') || define('PTC_PLUGIN_SETTINGS_PAGE_TYPE', 'pt_hms_settings');
 
 add_action('wp_ajax_get_token', 'ajax_get_token');
@@ -82,12 +82,26 @@ function pt_hms_settings_page_callback()
             </div>
             </div>
             <?php if ($all_fields_filled && !$token): ?>
-                <div class="notice notice-error" style="" style="margin: 15px 0 0;">
+                <div class="notice notice-error" style="margin: 15px 0 0;">
                     <p>
                         <strong>Error:</strong> API credentials are invalid. Please check your credentials and try again.
                     </p>
                 </div>
             <?php endif; ?>
+        </div>
+
+        <!-- Merchant Info (fetched from API, stored in localStorage) -->
+        <div class="card" id="ptc-merchant-info-card" style="max-width: 800px; padding: 20px; margin-top: 20px;">
+            <h2 style="margin-top: 0;">Merchant Info</h2>
+            <div id="ptc-merchant-info-content">
+                <p class="description">Loading…</p>
+            </div>
+            <p style="margin-top: 12px;">
+                <button type="button" id="ptc-refresh-merchant-btn" class="button button-secondary">
+                    <span class="dashicons dashicons-update" style="margin: 4px 5px 0 0; vertical-align: middle;"></span>
+                    Refresh merchant info
+                </button>
+            </p>
         </div>
 
         <!-- Add Toast Container -->
@@ -273,6 +287,89 @@ function pt_hms_settings_page_callback()
                             $btn.prop('disabled', false).html('<span class="dashicons dashicons-update" style="margin: 4px 5px 0 0;"></span>Reset Token');
                         }
                     });
+                });
+
+                // Merchant info: fetch from /aladdin/api/v1/user, store in localStorage, show short summary
+                var PTC_USER_STORAGE_KEY = 'ptc_user';
+
+                function escapeHtml(str) {
+                    if (str == null || str === '') return '—';
+                    var div = document.createElement('div');
+                    div.textContent = str;
+                    return div.innerHTML;
+                }
+
+                function renderMerchantInfo(apiResponse) {
+                    var $content = $('#ptc-merchant-info-content');
+                    if (!apiResponse || !apiResponse.data) {
+                        $content.html('<p class="description">Connect your API and save settings to see merchant info.</p>');
+                        return;
+                    }
+                    var d = apiResponse.data;
+                    var html = '<table class="widefat striped" style="max-width: 480px;">' +
+                        '<tr><th style="width: 140px;">Merchant</th><td>' + escapeHtml(d.merchant_name) + '</td></tr>' +
+                        '<tr><th>Email</th><td>' + escapeHtml(d.user_email) + '</td></tr>' +
+                        '<tr><th>Phone</th><td>' + escapeHtml(d.user_phone) + '</td></tr>' +
+                        '<tr><th>Merchant Country</th><td>' + escapeHtml(d.country_id = 1 ? 'Bangladesh' : 'Nepal') + '</td></tr>' +
+                        '</table>';
+                    $content.html(html);
+                }
+
+                function fetchMerchantInfo() {
+                    var $content = $('#ptc-merchant-info-content');
+                    var $btn = $('#ptc-refresh-merchant-btn');
+                    $content.html('<p class="description">Loading…</p>');
+                    $btn.prop('disabled', true);
+
+                    $.post(ajaxurl, { action: 'get_ptc_user' })
+                        .done(function (response) {
+                            if (response.success && response.data) {
+                                try {
+                                    localStorage.setItem(PTC_USER_STORAGE_KEY, JSON.stringify(response.data));
+                                } catch (e) {}
+                                renderMerchantInfo(response.data);
+                            } else {
+                                var cached = null;
+                                try {
+                                    var raw = localStorage.getItem(PTC_USER_STORAGE_KEY);
+                                    if (raw) cached = JSON.parse(raw);
+                                } catch (e) {}
+                                if (cached && cached.data) {
+                                    renderMerchantInfo(cached);
+                                } else {
+                                    $content.html('<p class="description">Could not load merchant info. Save your API settings and try again.</p>');
+                                }
+                            }
+                        })
+                        .fail(function () {
+                            var cached = null;
+                            try {
+                                var raw = localStorage.getItem(PTC_USER_STORAGE_KEY);
+                                if (raw) cached = JSON.parse(raw);
+                            } catch (e) {}
+                            if (cached && cached.data) {
+                                renderMerchantInfo(cached);
+                            } else {
+                                $content.html('<p class="description">Could not load merchant info. Save your API settings and try again.</p>');
+                            }
+                        })
+                        .always(function () {
+                            $btn.prop('disabled', false);
+                        });
+                }
+
+                // Show cached first, then refresh from API
+                try {
+                    var raw = localStorage.getItem(PTC_USER_STORAGE_KEY);
+                    if (raw) {
+                        var cached = JSON.parse(raw);
+                        if (cached && cached.data) renderMerchantInfo(cached);
+                    }
+                } catch (e) {}
+                fetchMerchantInfo();
+
+                $('#ptc-refresh-merchant-btn').on('click', function () {
+                    fetchMerchantInfo();
                 });
             });
         </script>
