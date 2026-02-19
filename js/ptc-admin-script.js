@@ -356,7 +356,7 @@ jQuery(document).ready(function ($) {
         const $status = $('#preload-status-text');
         const $percent = $('#preload-percentage');
 
-        if (confirm('This will fetch all city, zone, and area data from the API. This process may take a few minutes. Do you want to continue?')) {
+        if (confirm('This will fetch all city, zone, area, and store data from the API. This process may take a few minutes. Do you want to continue?')) {
             $btn.prop('disabled', true);
             $container.show();
             $bar.css('width', '0%');

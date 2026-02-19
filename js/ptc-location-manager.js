@@ -33,6 +33,7 @@ window.LocationDataManager = {
             const data = JSON.parse(cached);
 
             this.cities = data.cities;
+            this.stores = data.stores;
             this.zones = data.zones;
             this.areas = data.areas;
             return true;
@@ -47,6 +48,7 @@ window.LocationDataManager = {
             const data = {
                 timestamp: Date.now(),
                 cities: this.cities,
+                stores: this.stores,
                 zones: this.zones,
                 areas: this.areas
             };
