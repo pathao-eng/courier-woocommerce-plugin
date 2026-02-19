@@ -59,45 +59,54 @@ window.LocationDataManager = {
     async fetchAllWithProgress(onProgress) {
         // 1. Fetch Cities
         onProgress(0, 100, 'Fetching cities...');
-        const cities = await this.getCities();
-        if (!cities || cities.length === 0) {
-            onProgress(100, 100, 'No cities found.');
-            return;
+        await this.getCities();
+
+        // 2. Fetch All Zones
+        onProgress(20, 100, 'Fetching zones...');
+        const zonesResponse = await new Promise((resolve, reject) => {
+            jQuery.post(ajaxurl, { action: 'get_zone_list_bulk' })
+                .done(resolve)
+                .fail(reject);
+        });
+
+        if (zonesResponse && zonesResponse.success) {
+            const allZones = zonesResponse.data.data;
+            // Group zones by city_id
+            this.zones = allZones.reduce((acc, zone) => {
+                if (!acc[zone.city_id]) acc[zone.city_id] = [];
+                acc[zone.city_id].push({
+                    id: zone.id,
+                    name: zone.name
+                });
+                return acc;
+            }, {});
+        } else {
+            console.error('Failed to fetch zones bulk', zonesResponse);
         }
 
-        // 2. Fetch Zones
-        const totalCities = cities.length;
-        let citiesProcessed = 0;
-
-        const allZones = await this.processBatch(cities, 5, async (city) => {
-            try {
-                const zones = await this.getZones(city.id);
-                citiesProcessed++;
-                const percent = Math.round((citiesProcessed / totalCities) * 40); // Cities = 40% of progress
-                onProgress(percent, 100, `Fetching zones for ${city.name}...`);
-                return { cityId: city.id, zones };
-            } catch (e) {
-                console.error(`Failed to fetch zones for city ${city.id}`, e);
-                return { cityId: city.id, zones: [] };
-            }
+        // 3. Fetch All Areas
+        onProgress(60, 100, 'Fetching areas...');
+        const areasResponse = await new Promise((resolve, reject) => {
+            jQuery.post(ajaxurl, { action: 'get_area_list_bulk' })
+                .done(resolve)
+                .fail(reject);
         });
 
-        // Flatten zones list
-        const zonesToFetch = allZones.flatMap(item => item.zones);
-        const totalZones = zonesToFetch.length;
-        let zonesProcessed = 0;
+        if (areasResponse && areasResponse.success) {
+            const allAreas = areasResponse.data.data;
+            // Group areas by zone_id
+            this.areas = allAreas.reduce((acc, area) => {
+                if (!acc[area.zone_id]) acc[area.zone_id] = [];
+                acc[area.zone_id].push({
+                    id: area.id,
+                    name: area.name
+                });
+                return acc;
+            }, {});
+        } else {
+            console.error('Failed to fetch areas bulk', areasResponse);
+        }
 
-        // 3. Fetch Areas
-        await this.processBatch(zonesToFetch, 5, async (zone) => {
-            try {
-                await this.getAreas(zone.id);
-                zonesProcessed++;
-                const percent = 40 + Math.round((zonesProcessed / totalZones) * 50); // Areas = 50% of progress
-                onProgress(percent, 100, `Fetching areas for ${zone.name}...`);
-            } catch (e) {
-                console.error(`Failed to fetch areas for zone ${zone.id}`, e);
-            }
-        });
 
         // 4. Fetch Stores
         onProgress(90, 100, 'Fetching stores...');
