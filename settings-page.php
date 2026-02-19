@@ -176,8 +176,8 @@ function pt_hms_settings_page_callback()
             </div>
         </div>
 
-        <!-- Data Synchronization Section -->
-        <div class="card" style="max-width: 800px; padding: 20px; margin-top: 20px;">
+        <!-- Data Synchronization Section (hidden when country_id = 1) -->
+        <div id="ptc-data-sync-card" class="card" style="max-width: 800px; padding: 20px; margin-top: 20px;">
             <h2 style="margin-top: 0;">Data Synchronization</h2>
             <p class="description">Preload city, zone, and area data to speed up order creation.</p>
 
@@ -306,6 +306,9 @@ function pt_hms_settings_page_callback()
                         return;
                     }
                     var d = apiResponse.data;
+                    if (d.country_id === 1) {
+                        $('#ptc-data-sync-card').hide();
+                    }
                     var html = '<table class="widefat striped" style="max-width: 480px;">' +
                         '<tr><th style="width: 140px;">Merchant</th><td>' + escapeHtml(d.merchant_name) + '</td></tr>' +
                         '<tr><th>Email</th><td>' + escapeHtml(d.user_email) + '</td></tr>' +
@@ -363,7 +366,10 @@ function pt_hms_settings_page_callback()
                     var raw = localStorage.getItem(PTC_USER_STORAGE_KEY);
                     if (raw) {
                         var cached = JSON.parse(raw);
-                        if (cached && cached.data) renderMerchantInfo(cached);
+                        if (cached && cached.data) {
+                            renderMerchantInfo(cached);
+                            if (cached.data.country_id === 1) $('#ptc-data-sync-card').hide();
+                        }
                     }
                 } catch (e) {}
                 fetchMerchantInfo();
