@@ -113,53 +113,6 @@ You can now create orders in bulk!
 
    - Click **Confirm** to create all orders at once.
 
-## Changelog
-- v.1.2.0
-   - Bug Fixes
-      - hotfix and refactor code and default value mismatch error
-      - hotfix: Webhook for new merchant panel
-      - add optional header in new webhook
-      - billing address and shipping issue
-   - Feature
-     - Enhance Pathao Courier settings page UI and user experience
-- v.1.1.6
-   - Bug Fixes
-      - add a secondary phone number field in the Create Order page
-- v.1.1.5
-   - Bug Fixes
-      - add a special instruction field in the Create Order page
-- v.1.1.4
-   - Bug Fixes
-      - Fix the amount_to_collect 0 issue
-      - Add new field Note
-- v.1.1.3
-   - Bug Fixes
-      - Separate all queries
-      - Fix sanitization issues
-      - Fix edit URL issues
-      - Fix all order count issues
-      - Refactor code 
-- v.1.1.2
-    - Bug Fixes
-        - Filter issue fixed.
-        - Refactored the order list template.
-        - Add a clear filter button.
-- v.1.1.1
-    - Bug Fixes
-        - Installation issue fixed.
-- v.1.1.0
-  - Features 
-    - Added order creation without city/zone/area.
-    - Separate order list template
-    - New template for the "All Orders" page and added a general settings page.
-    - Added date and limit filter on the template page.
-  - Bug Fixes
-    - Fixed CSS style for modal.
-    - Changed in validation UI response.
-    - Changed default weight value
-    - Default weight 1kg to 0.5kg
-    - Refactored the code.
-    - Refactored all endpoints.
 
 ## Note
 If you are facing any issues with the latest plugin version, you can use the previous version of the plugin from [here](https://github.com/pathao-eng/courier-woocommerce-plugin/releases/tag/1.0.4).
