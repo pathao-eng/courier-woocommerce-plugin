@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Pathao Courier
  * Description: Pathao Courier plugin for WooCommerce
- * Version: 1.4.2
+ * Version: 2.0.0
  * Author: Pathao
  * Text Domain: pathao-courier
  * Requires at least: 6.0
