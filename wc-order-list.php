@@ -143,11 +143,7 @@ function ptc_render_store_modal_content()
           
               <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img" alt="Pathao Courier Logo" style="
                    height: 200px;
-                   display: none; 
-                   position: absolute;
-                   left: 42%;
-                   top: 50%;
-               ">
+                   display: none;">
                
               <div class="order-info">
                   <h3>Order Information</h3>
@@ -235,9 +231,11 @@ function ptc_render_bulk_modal_content()
                 <h2 class="wp-heading-inline ">Send with Pathao</h2>
                 <div id="hot-container" style="margin: 50px auto; max-width:960px;"></div>
                  <ul id="ptc-response-list"></ul>
-                 <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img"
+                 <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-bulk-loading-img"
                      alt="Pathao Courier Logo" 
-                     style="height: 200px; display: none; ">
+                     style="height: 200px; position: absolute;
+                   left: 42%;
+                   top: 50%;">
 
                  <!-- Preload Container -->
                  <div id="ptc-bulk-preload-container" style="display: none; text-align: center; margin: 40px 0;">

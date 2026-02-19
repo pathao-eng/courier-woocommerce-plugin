@@ -2,7 +2,7 @@ jQuery(document).ready(function ($) {
 
     let hotInstance;
     const list = $("#ptc-response-list");
-    const loading = $("#ptc-loading-img");
+    const loading = $("#ptc-bulk-loading-img");
     const modal = $("#ptc-bulk-modal-overlay");
 
     function createBulkOrder(orders) {
@@ -91,6 +91,8 @@ jQuery(document).ready(function ($) {
     });
 
     function getOrders(orderIds) {
+        loading.show();
+        $('#modal-confirm').prop('disabled', true);
         return new Promise((resolve, reject) => {
             $.post(ajaxurl, {
                 action: 'get_wc_order_bulk',
@@ -99,6 +101,8 @@ jQuery(document).ready(function ($) {
                 .done(response => {
                     const orders = response?.data;
                     resolve(orders);
+                    loading.hide();
+                    $('#modal-confirm').prop('disabled', false);
                 })
                 .fail(err => reject(err));
         });
