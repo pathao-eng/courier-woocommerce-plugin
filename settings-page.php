@@ -382,6 +382,12 @@ function pt_hms_settings_page_callback()
 
                 $('#ptc-refresh-merchant-btn').on('click', function () {
                     fetchMerchantInfo();
+                    // Also refresh stores when refreshing merchant info
+                    if (typeof LocationDataManager !== 'undefined') {
+                        LocationDataManager.getStores(true).catch(function(err) {
+                            console.error('Failed to refresh stores:', err);
+                        });
+                    }
                 });
             });
         </script>
