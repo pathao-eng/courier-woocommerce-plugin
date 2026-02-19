@@ -339,6 +339,11 @@ jQuery(document).ready(function ($) {
             let selected = store.is_default_store ? 'selected' : '';
             options += `<option ${selected} value="${store.id}">${store.name}</option>`;
         });
+
+        if (stores?.length == 1) {
+            options += `<option selected value="${stores[0].id}">${stores[0].name}</option>`;
+        }
+
         $('#store').html(options);
     }
 
