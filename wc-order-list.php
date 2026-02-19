@@ -139,26 +139,38 @@ function ptc_render_store_modal_content()
           <span class="close">&times;</span>
           <h2>Send this through Pathao Courier</h2>
           <hr>
-          <?php if ($order): ?>
-          
-              <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img" alt="Pathao Courier Logo" style="
-                   height: 200px;
-                   display: none; 
-                   position: absolute;
-                   left: 42%;
-                   top: 50%;
-               ">
-               
-              <div class="order-info">
-                  <h3>Order Information</h3>
-                  <p><strong>Total Price:</strong> <span id="ptc_wc_order_total_price"> </span> </p>
-                  <p><strong>Payment Status:</strong> <span id="ptc_wc_order_payment_status"> </span> </p>
-                  <h4>Order Items: <span id="ptc_wc_total_order_items"></span></h4>
-                  <ul id="ptc_wc_order_items">
-                  </ul>
-              </div>
-              <hr>
-          <?php endif; ?>
+          <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img" alt="Pathao Courier Logo" style="
+               height: 200px;
+               display: none;">
+           
+          <div class="order-info">
+              <h3>Order Information</h3>
+              <p><strong>Total Price:</strong> <span id="ptc_wc_order_total_price"> </span> </p>
+              <p><strong>Payment Status:</strong> <span id="ptc_wc_order_payment_status"> </span> </p>
+              <h4>Order Items: <span id="ptc_wc_total_order_items"></span></h4>
+              <ul id="ptc_wc_order_items">
+              </ul>
+          </div>
+          <hr>
+
+          <!-- Preload Container -->
+          <div id="ptc-single-preload-container" style="display: none; text-align: center; margin: 20px 0;">
+            <p style="margin-bottom: 15px; font-size: 16px;">City, Zone, and Area data is missing. Please preload it to continue.</p>
+            <button type="button" id="ptc-single-preload-btn" class="button button-primary button-large">
+                <span class="dashicons dashicons-database-import" style="margin: 4px 5px 0 0;"></span>
+                Preload City, Zone, Area & Store
+            </button>
+            
+            <div id="ptc-single-preload-progress" style="display: none; margin-top: 20px; text-align: left;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span id="ptc-single-preload-status">Starting...</span>
+                    <span id="ptc-single-preload-percent">0%</span>
+                </div>
+                <div style="background: #f0f0f1; border-radius: 4px; height: 20px; overflow: hidden;">
+                    <div id="ptc-single-preload-bar" style="background: #2271b1; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+          </div>
 
           <div class="courier-settings">
             <div class="row">
@@ -167,9 +179,9 @@ function ptc_render_store_modal_content()
                 ' . $SecondaryPhoneForm . '
             </div>
             <div class="row">
-              <?= render_stores_dropdown(); ?>
-              <?= render_item_type_dropdown(); ?>
-              <?= render_order_type_dropdown(); ?>
+              ' . $storeForm . '
+              ' . $itemType . '
+              ' . $deliveryType . '
             </div>
             <div class="row">
               ' . $orderNumber . '
@@ -179,21 +191,17 @@ function ptc_render_store_modal_content()
             </div>
             <div class="row">
             ' . $addressForm . '
-            ' . $storeForm . '
             </div>
 
             <div class="row">
-          
               ' . $citiesForm . '
               ' . $zoneForm . '
               ' . $areaForm . '
-           </div>
+            </div>
             <div class="row">
-              ' . $deliveryType . '
-              ' . $itemType . '
               ' . $itemDescription . '
               ' . $specialInstruction . '
-           </div>
+            </div>
           </div>
           <button id="ptc-submit-button" type="button">Send with Pathao Courier</button>
       </div>
@@ -216,16 +224,18 @@ function ptc_render_bulk_modal_content()
                 <h2 class="wp-heading-inline ">Send with Pathao</h2>
                 <div id="hot-container" style="margin: 50px auto; max-width:960px;"></div>
                  <ul id="ptc-response-list"></ul>
-                 <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-loading-img"
+                 <img src="'. PTC_PLUGIN_URL . 'assets/images/loading.gif'.'" id="ptc-bulk-loading-img"
                      alt="Pathao Courier Logo" 
-                     style="height: 200px; display: none; ">
+                     style="height: 200px; position: absolute;
+                   left: 42%;
+                   top: 50%;">
 
                  <!-- Preload Container -->
                  <div id="ptc-bulk-preload-container" style="display: none; text-align: center; margin: 40px 0;">
                     <p style="margin-bottom: 15px; font-size: 16px;">City, Zone, and Area data is missing. Please preload it to continue.</p>
                     <button type="button" id="ptc-bulk-preload-btn" class="button button-primary button-large">
                         <span class="dashicons dashicons-database-import" style="margin: 4px 5px 0 0;"></span>
-                        Preload City, Zone & Area
+                        Preload City, Zone, Area & Store
                     </button>
                     
                     <div id="ptc-bulk-preload-progress" style="display: none; margin-top: 20px; text-align: left;">

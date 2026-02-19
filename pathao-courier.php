@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Pathao Courier
  * Description: Pathao Courier plugin for WooCommerce
- * Version: 1.4.1
+ * Version: 1.4.2
  * Author: Pathao
  * Text Domain: pathao-courier
  * Requires at least: 6.0
@@ -121,45 +121,7 @@ function handle_custom_bulk_action( $redirect_to, $do_action, $post_ids ) {
         return $redirect_to;
     }
 
-
-    // Process the selected orders
-    foreach ( $post_ids as $order_id ) {
-        // Get the order object
-        $order = wc_get_order( $order_id );
-
-        if ( $order ) {
-            $orderData = transformData(getPtOrderData($order));
-
-
-
-
-
-            echo 'send_with_pathao <pre>' . json_encode($orderData, JSON_PRETTY_PRINT) .'</pre>>';
-
-
-        }
-    }
-
-//    die();
-
-    $redirect_to = add_query_arg( 'example_updated', count( $post_ids ), $redirect_to );
+    // Bulk send is handled by JS (modal); if we reach here without JS, redirect cleanly.
+    $redirect_to = add_query_arg( 'send_with_pathao_bulk', count( $post_ids ), $redirect_to );
     return $redirect_to;
-}
-
-function transformData(array $getPtOrderData)
-{
-    return [
-        "store_id" => 1,
-        "merchant_order_id" => 1,
-        "recipient_name" => "Demo Recipient One",
-        "recipient_phone" => "015XXXXXXXX",
-        "recipient_address" => "House 123, Road 4, Sector 10, Uttara, Dhaka-1230, Bangladesh",
-        "delivery_type" => 48,
-        "item_type" => 2,
-        "special_instruction" => "Do not put water",
-        "item_quantity" => 2,
-        "item_weight" => "0.5",
-        "amount_to_collect" => 100,
-        "item_description" => "This is a Cloth item, price- 3000",
-    ];
 }

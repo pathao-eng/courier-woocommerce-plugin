@@ -90,6 +90,39 @@ function transformTokenResponse($refresh_response)
     );
 }
 
+function pt_hms_get_user()
+{
+    $url = get_base_url() . '/aladdin/api/v1/user/short-info';
+    $token = pt_hms_get_token();
+    
+    if ( ! $token ) {
+        return null;
+    }
+
+    $args = array(
+        'headers' => array(
+            'Authorization' => 'Bearer ' . $token,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ),
+    );
+
+    $response = wp_remote_get( $url, $args );
+
+    if ( is_wp_error( $response ) ) {
+        return null;
+    }
+
+    $body = wp_remote_retrieve_body( $response );
+    $decoded = json_decode( $body, true );
+
+    if ( json_last_error() !== JSON_ERROR_NONE || empty( $decoded['data'] ) ) {
+        return null;
+    }
+
+    return $decoded;
+}
+
 function pt_hms_get_stores()
 {
     $url = get_base_url() . "/aladdin/api/v1/stores";
@@ -144,9 +177,44 @@ function pt_hms_get_zones($city_id)
 }
 
 
+function pt_hms_get_zone_list_bulk()
+{
+    $url = get_base_url() . "/aladdin/api/v1/zones/list";
+    $token = pt_hms_get_token();
+
+    $args = array(
+        'headers' => array(
+            'Authorization' => 'Bearer ' . $token,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        )
+    );
+
+    $response = wp_remote_get($url, $args);
+    return json_decode(wp_remote_retrieve_body($response), true);
+}
+
+
 function pt_hms_get_areas($zone_id)
 {
     $url = get_base_url() . "/aladdin/api/v1/zones/" . $zone_id . "/area-list";
+    $token = pt_hms_get_token();
+
+    $args = array(
+        'headers' => array(
+            'Authorization' => 'Bearer ' . $token,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        )
+    );
+
+    $response = wp_remote_get($url, $args);
+    return json_decode(wp_remote_retrieve_body($response), true);
+}
+
+function pt_hms_get_area_list_bulk()
+{
+    $url = get_base_url() . "/aladdin/api/v1/areas/list";
     $token = pt_hms_get_token();
 
     $args = array(
