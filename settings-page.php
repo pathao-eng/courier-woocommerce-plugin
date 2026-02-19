@@ -378,6 +378,56 @@ function pt_hms_settings_page_callback()
                 } catch (e) {}
                 fetchMerchantInfo();
 
+                // AJAX-submit the settings form so we can trigger other actions without a full reload
+                var $settingsForm = $('form[action="options.php"]');
+                $settingsForm.on('submit', function (e) {
+                    e.preventDefault();
+
+                    var $form = $(this);
+                    var $btn = $form.find('input[type="submit"], button[type="submit"]').first();
+                    var originalText = '';
+
+                    if ($btn.length) {
+                        if ($btn.is('input')) {
+                            originalText = $btn.val();
+                            $btn.val('Saving...');
+                        } else {
+                            originalText = $btn.text();
+                            $btn.text('Saving...');
+                        }
+                        $btn.prop('disabled', true);
+                    }
+
+                    $.ajax({
+                        url: $form.attr('action'),
+                        method: $form.attr('method') || 'POST',
+                        data: $form.serialize(),
+                        success: function () {
+                            showToast('Success', 'Settings saved successfully.', 'success');
+                            // Refresh merchant info and stores after saving
+                            fetchMerchantInfo();
+                            if (typeof LocationDataManager !== 'undefined') {
+                                LocationDataManager.getStores(true).catch(function (err) {
+                                    console.error('Failed to refresh stores:', err);
+                                });
+                            }
+                        },
+                        error: function () {
+                            showToast('Error', 'Failed to save settings. Please try again.');
+                        },
+                        complete: function () {
+                            if ($btn.length) {
+                                $btn.prop('disabled', false);
+                                if ($btn.is('input')) {
+                                    $btn.val(originalText);
+                                } else {
+                                    $btn.text(originalText);
+                                }
+                            }
+                        }
+                    });
+                });
+
                 $('#ptc-refresh-merchant-btn').on('click', function () {
                     fetchMerchantInfo();
                     if (typeof LocationDataManager !== 'undefined') {
