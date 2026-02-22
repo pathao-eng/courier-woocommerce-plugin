@@ -365,6 +365,7 @@ function pt_hms_settings_page_callback()
                         });
                 }
 
+
                 try {
                     var raw = localStorage.getItem(PTC_USER_STORAGE_KEY);
                     if (raw) {
@@ -374,9 +375,9 @@ function pt_hms_settings_page_callback()
                             if (cached.data.country_id === 1) {
                                 $('#ptc-data-sync-card').hide()
                             };
-                        } else {
-                            fetchMerchantInfo();
                         }
+                    } else {
+                        fetchMerchantInfo();
                     }
                 } catch (e) {}
 
