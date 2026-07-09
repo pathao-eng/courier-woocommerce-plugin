@@ -268,7 +268,7 @@ function ajax_pt_wc_order_details_bulk()
  * @param bool|WC_Order|WC_Order_Refund $order
  * @return array
  */
-function getPtOrderData(bool|WC_Order|WC_Order_Refund $order): array
+function getPtOrderData($order): array
 {
     $orderData = $order->get_data();
     $orderItems = 0;
