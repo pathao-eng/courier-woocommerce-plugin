@@ -236,6 +236,16 @@ function pt_hms_create_new_order($order_data)
 
     $payload = makeDto($order_data);
 
+    $order = wc_get_order($payload['merchant_order_id']);
+
+    /**
+     * Fires before a single order is sent to Pathao.
+     *
+     * @param array     $payload The API payload that will be sent.
+     * @param WC_Order|null $order   The WooCommerce order (null if not found).
+     */
+    do_action('pathao_before_send_order', $payload, $order);
+
     $args = array(
         'headers' => array(
             'Authorization' => 'Bearer ' . $token,
@@ -250,16 +260,39 @@ function pt_hms_create_new_order($order_data)
 
     // status code 201 means created
     if (wp_remote_retrieve_response_code($response) >= 300) {
-        wp_send_json_error(json_decode(wp_remote_retrieve_body($response), true), wp_remote_retrieve_response_code($response));
+        $errorBody = json_decode(wp_remote_retrieve_body($response), true);
+
+        /**
+         * Fires when sending a single order to Pathao fails.
+         *
+         * @param array         $errorBody  Decoded error response body.
+         * @param int           $statusCode HTTP response code.
+         * @param array         $payload    The payload that was sent.
+         * @param WC_Order|null $order      The WooCommerce order.
+         */
+        do_action('pathao_send_order_failed', $errorBody, wp_remote_retrieve_response_code($response), $payload, $order);
+
+        wp_send_json_error($errorBody, wp_remote_retrieve_response_code($response));
     }
 
     if (is_wp_error($response)) {
+        do_action('pathao_send_order_failed', ['message' => $response->get_error_message()], 0, $payload, $order);
         return $response->get_error_message();
     }
 
     $body = wp_remote_retrieve_body($response);
+    $result = json_decode($body, true);
 
-    return json_decode($body, true);
+    /**
+     * Fires after a single order is successfully sent to Pathao.
+     *
+     * @param array         $result  Decoded API response.
+     * @param array         $payload The payload that was sent.
+     * @param WC_Order|null $order   The WooCommerce order.
+     */
+    do_action('pathao_after_send_order', $result, $payload, $order);
+
+    return $result;
 }
 
 /**
@@ -300,6 +333,55 @@ function makeDto($order_data): array
         $payload['amount_to_collect'] =  (int)sanitize_text_field($order_data['amount_to_collect']);
     }
 
+    // Allow third-party code to override individual payload fields
+    $orderId = $payload['merchant_order_id'];
+    $order = $orderId ? wc_get_order($orderId) : null;
+
+    if ($order) {
+        $payload['recipient_name'] = sanitize_text_field(
+            apply_filters('pathao_order_payload_recipient_name', $payload['recipient_name'], $order, $payload)
+        );
+        $payload['recipient_phone'] = sanitize_text_field(
+            apply_filters('pathao_order_payload_recipient_phone', $payload['recipient_phone'], $order, $payload)
+        );
+        $payload['recipient_address'] = sanitize_text_field(
+            apply_filters('pathao_order_payload_recipient_address', $payload['recipient_address'], $order, $payload)
+        );
+        $payload['item_description'] = sanitize_textarea_field(
+            apply_filters('pathao_order_payload_item_description', $payload['item_description'], $order, $payload)
+        );
+
+        // Final catch-all filter for the complete payload
+        $payload = apply_filters('pathao_order_payload', $payload, $order);
+
+        // Re-sanitize the entire payload after the catch-all filter
+        $payload = ptc_sanitize_payload($payload);
+    }
+
+    return $payload;
+}
+
+/**
+ * Sanitize all string values in a payload array.
+ *
+ * @param array $payload
+ * @return array
+ */
+function ptc_sanitize_payload(array $payload): array
+{
+    $numericKeys = ['store_id', 'recipient_city', 'recipient_zone', 'recipient_area',
+                    'amount_to_collect', 'item_quantity', 'item_weight', 'delivery_type', 'item_type'];
+
+    foreach ($payload as $key => $value) {
+        if (in_array($key, $numericKeys, true)) {
+            $payload[$key] = is_float($value) ? (float) $value : (int) $value;
+        } elseif (is_string($value)) {
+            $payload[$key] = ($key === 'item_description' || $key === 'special_instruction' || $key === 'recipient_address')
+                ? sanitize_textarea_field($value)
+                : sanitize_text_field($value);
+        }
+    }
+
     return $payload;
 }
 
@@ -311,6 +393,13 @@ function pt_hms_create_new_order_bulk($order_data)
     $payload = [
         'orders' => $order_data
     ];
+
+    /**
+     * Fires before bulk orders are sent to Pathao.
+     *
+     * @param array $payload The full payload containing all orders.
+     */
+    do_action('pathao_before_send_bulk_orders', $payload);
 
     $args = [
         'headers' => [
@@ -326,14 +415,35 @@ function pt_hms_create_new_order_bulk($order_data)
 
     // status code 201 means created
     if (wp_remote_retrieve_response_code($response) >= 300) {
-        wp_send_json_error(json_decode(wp_remote_retrieve_body($response), true), wp_remote_retrieve_response_code($response));
+        $errorBody = json_decode(wp_remote_retrieve_body($response), true);
+
+        /**
+         * Fires when sending bulk orders to Pathao fails.
+         *
+         * @param array $errorBody  Decoded error response body.
+         * @param int   $statusCode HTTP response code.
+         * @param array $payload    The payload that was sent.
+         */
+        do_action('pathao_send_bulk_orders_failed', $errorBody, wp_remote_retrieve_response_code($response), $payload);
+
+        wp_send_json_error($errorBody, wp_remote_retrieve_response_code($response));
     }
 
     if (is_wp_error($response)) {
+        do_action('pathao_send_bulk_orders_failed', ['message' => $response->get_error_message()], 0, $payload);
         return $response->get_error_message();
     }
 
     $body = wp_remote_retrieve_body($response);
+    $result = json_decode($body, true);
 
-    return json_decode($body, true);
+    /**
+     * Fires after bulk orders are successfully sent to Pathao.
+     *
+     * @param array $result  Decoded API response.
+     * @param array $payload The payload that was sent.
+     */
+    do_action('pathao_after_send_bulk_orders', $result, $payload);
+
+    return $result;
 }

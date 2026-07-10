@@ -120,6 +120,88 @@ If you are facing any issues with the latest plugin version, you can use the pre
 ## License
 This plugin is released under the [GPL V3](https://github.com/pathao-eng/courier-woocommerce-plugin/blob/main/license.txt).
 
+## Developer Hooks
+
+The plugin provides WordPress filters and actions for customizing modal fields and the final API payload.
+
+### Filters — Modal Field Defaults
+
+These filters run when order data is fetched for the single/bulk modal. They let you override the default prefill values.
+
+| Filter | Default Value | Arguments |
+|---|---|---|
+| `pathao_order_data_context` | `[]` | `$context, $order` |
+| `pathao_modal_recipient_name` | Billing full name | `$value, $order, $context` |
+| `pathao_modal_recipient_phone` | Billing phone | `$value, $order, $context` |
+| `pathao_modal_recipient_address` | Shipping or billing address | `$value, $order, $context` |
+| `pathao_modal_item_description` | Product names x quantity | `$value, $order, $context` |
+| `pathao_modal_order_data` | Array of all 4 fields above | `$data, $order, $context` |
+
+### Filters — Final API Payload
+
+These filters run in `makeDto()` right before the order is sent to the Pathao API. The WC order is loaded and passed for context.
+
+| Filter | Arguments |
+|---|---|
+| `pathao_order_payload_recipient_name` | `$value, $order, $payload` |
+| `pathao_order_payload_recipient_phone` | `$value, $order, $payload` |
+| `pathao_order_payload_recipient_address` | `$value, $order, $payload` |
+| `pathao_order_payload_item_description` | `$value, $order, $payload` |
+| `pathao_order_payload` | `$payload, $order` |
+
+All payload values are re-sanitized after filters run.
+
+### Actions — Lifecycle Hooks
+
+| Action | When | Arguments |
+|---|---|---|
+| `pathao_before_send_order` | Before single order API call | `$payload, $order` |
+| `pathao_after_send_order` | After successful single order | `$result, $payload, $order` |
+| `pathao_send_order_failed` | On single order API error | `$errorBody, $statusCode, $payload, $order` |
+| `pathao_before_send_bulk_orders` | Before bulk orders API call | `$payload` |
+| `pathao_after_send_bulk_orders` | After successful bulk orders | `$result, $payload` |
+| `pathao_send_bulk_orders_failed` | On bulk orders API error | `$errorBody, $statusCode, $payload` |
+
+### Example — Custom recipient address from order meta
+
+```php
+add_filter( 'pathao_modal_recipient_address', function ( $address, $order, $context ) {
+    $parts = array_filter( [
+        $order->get_meta( '_house_no' ),
+        $order->get_meta( '_road_no' ),
+        $order->get_meta( '_area' ),
+        $order->get_billing_city(),
+    ] );
+
+    return implode( ', ', $parts );
+}, 10, 3 );
+```
+
+### Example — Modify the final API payload
+
+```php
+add_filter( 'pathao_order_payload', function ( $payload, $order ) {
+    // Force a specific store for prepaid orders
+    if ( $order->is_paid() ) {
+        $payload['store_id'] = 12345;
+    }
+    return $payload;
+}, 10, 2 );
+```
+
+### Example — Log failed orders
+
+```php
+add_action( 'pathao_send_order_failed', function ( $errorBody, $statusCode, $payload, $order ) {
+    error_log( sprintf(
+        'Pathao order #%d failed (HTTP %d): %s',
+        $payload['merchant_order_id'],
+        $statusCode,
+        wp_json_encode( $errorBody )
+    ) );
+}, 10, 4 );
+```
+
 ## Support
 
 If you have any questions or need help, please get in touch with us at

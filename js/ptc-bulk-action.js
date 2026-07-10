@@ -129,24 +129,28 @@ jQuery(document).ready(function ($) {
         let defaultDeliveryType = deliveryTypes[0].name
         let defaultItemType = itemTypes[0].name
 
-        let address = '';
-        if (data?.shipping?.address_1 && data?.shipping?.address_2) {
-            address = `${data?.shipping?.address_1}, ${data?.shipping?.address_2}, ${data?.shipping?.city}, ${data?.shipping?.state}, ${data?.shipping?.postcode}`;
-        } else {
-            address = `${data?.billing?.address_1}, ${data?.billing?.address_2}, ${data?.billing?.city}, ${data?.billing?.state}, ${data?.billing?.postcode}`;
+        let address = data?.pathao?.recipient_address || '';
+        if (!address) {
+            if (data?.shipping?.address_1 && data?.shipping?.address_2) {
+                address = `${data?.shipping?.address_1}, ${data?.shipping?.address_2}, ${data?.shipping?.city}, ${data?.shipping?.state}, ${data?.shipping?.postcode}`;
+            } else {
+                address = `${data?.billing?.address_1}, ${data?.billing?.address_2}, ${data?.billing?.city}, ${data?.billing?.state}, ${data?.billing?.postcode}`;
+            }
         }
+
+        const productDescriptions = data?.items?.map(item => `${item.name} x${item.quantity}`).join('\n') || '';
 
         return {
             merchant_order_id: data.id,
-            recipient_name: data?.billing?.full_name,
-            recipient_phone: data?.billing?.phone,
+            recipient_name: data?.pathao?.recipient_name || data?.billing?.full_name,
+            recipient_phone: data?.pathao?.recipient_phone || data?.billing?.phone,
             recipient_secondary_phone: '',
             recipient_address: address,
             recipient_city: null,
             recipient_zone: null,
             recipient_area: null,
             amount_to_collect: data.total,
-            item_description: '',
+            item_description: data?.pathao?.item_description || productDescriptions,
             special_instruction: '',
             store_id: defaultStore,
             delivery_type: defaultDeliveryType,

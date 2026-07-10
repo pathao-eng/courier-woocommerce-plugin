@@ -95,15 +95,17 @@ jQuery(document).ready(function ($) {
             $('.courier-settings').show();
             $('#ptc-submit-button').show();
 
-            let address = '';
-            if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
-                address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
-            } else {
-                address = `${orderData?.billing?.address_1}, ${orderData?.billing?.address_2}, ${orderData?.billing?.city}, ${orderData?.billing?.state}, ${orderData?.billing?.postcode}`;
+            let address = orderData?.pathao?.recipient_address || '';
+            if (!address) {
+                if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
+                    address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
+                } else {
+                    address = `${orderData?.billing?.address_1}, ${orderData?.billing?.address_2}, ${orderData?.billing?.city}, ${orderData?.billing?.state}, ${orderData?.billing?.postcode}`;
+                }
             }
 
-            nameInput.val(orderData?.billing?.full_name);
-            phoneInput.val(orderData?.billing?.phone);
+            nameInput.val(orderData?.pathao?.recipient_name || orderData?.billing?.full_name);
+            phoneInput.val(orderData?.pathao?.recipient_phone || orderData?.billing?.phone);
             shippingAddressInput.val(address);
 
             totalPriceDom.html(`${orderData.total} ${orderData.currency}`);
@@ -144,9 +146,13 @@ jQuery(document).ready(function ($) {
                 await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId);
             }
 
-            // Autofill item description with product name + quantity, each on a new line
-            const productDescriptions = orderData?.items?.map(item => `${item.name} x${item.quantity}`).join('\n');
-            itemDescriptionInput.val(productDescriptions);
+            // Autofill item description — prefer filtered value, fallback to product name + quantity
+            if (orderData?.pathao?.item_description) {
+                itemDescriptionInput.val(orderData.pathao.item_description);
+            } else {
+                const productDescriptions = orderData?.items?.map(item => `${item.name} x${item.quantity}`).join('\n');
+                itemDescriptionInput.val(productDescriptions);
+            }
         }
     }
 
