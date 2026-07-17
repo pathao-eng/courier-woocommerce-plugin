@@ -308,6 +308,69 @@ function getPtOrderData($order): array
     $orderData['total_weight'] = $totalWeight;
     $orderData['payment_date'] = $order->get_date_paid();
 
+    // Build default values for Pathao modal fields
+    $shippingAddress = trim(sprintf('%s, %s, %s, %s, %s',
+        $orderData['shipping']['address_1'] ?? '',
+        $orderData['shipping']['address_2'] ?? '',
+        $orderData['shipping']['city'] ?? '',
+        $orderData['shipping']['state'] ?? '',
+        $orderData['shipping']['postcode'] ?? ''
+    ));
+
+    $billingAddress = trim(sprintf('%s, %s, %s, %s, %s',
+        $orderData['billing']['address_1'] ?? '',
+        $orderData['billing']['address_2'] ?? '',
+        $orderData['billing']['city'] ?? '',
+        $orderData['billing']['state'] ?? '',
+        $orderData['billing']['postcode'] ?? ''
+    ));
+
+    $defaultAddress = (!empty($orderData['shipping']['address_1']) && !empty($orderData['shipping']['address_2']))
+        ? $shippingAddress
+        : $billingAddress;
+
+    $productDescriptions = implode("\n", array_map(function ($item) {
+        return "{$item['name']} x{$item['quantity']}";
+    }, $orderData['items']));
+
+    // Allow third-party code to provide context (e.g. custom order meta) to all field filters
+    $context = apply_filters('pathao_order_data_context', [], $order);
+
+    $recipientName = apply_filters(
+        'pathao_modal_recipient_name',
+        $orderData['billing']['full_name'],
+        $order,
+        $context
+    );
+
+    $recipientPhone = apply_filters(
+        'pathao_modal_recipient_phone',
+        $orderData['billing']['phone'],
+        $order,
+        $context
+    );
+
+    $recipientAddress = apply_filters(
+        'pathao_modal_recipient_address',
+        $defaultAddress,
+        $order,
+        $context
+    );
+
+    $itemDescription = apply_filters(
+        'pathao_modal_item_description',
+        $productDescriptions,
+        $order,
+        $context
+    );
+
+    $orderData['pathao'] = apply_filters('pathao_modal_order_data', [
+        'recipient_name'    => sanitize_text_field($recipientName),
+        'recipient_phone'   => sanitize_text_field($recipientPhone),
+        'recipient_address' => sanitize_text_field($recipientAddress),
+        'item_description'  => sanitize_textarea_field($itemDescription),
+    ], $order, $context);
+
     return $orderData;
 }
 
