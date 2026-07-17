@@ -36,7 +36,32 @@ const PTC_EMPTY_FLAG = '-';
 
 // Enqueue styles and scripts
 add_action('admin_enqueue_scripts', 'enqueue_custom_admin_script');
+function ptc_should_load_order_admin_assets($hook) {
+    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+    $post_type = isset($_GET['post_type']) ? sanitize_key(wp_unslash($_GET['post_type'])) : '';
+
+    if ($page === PTC_PLUGIN_PAGE_TYPE || $page === 'wc-orders') {
+        return true;
+    }
+
+    if ($hook === 'woocommerce_page_wc-orders') {
+        return true;
+    }
+
+    return $hook === 'edit.php' && $post_type === 'shop_order';
+}
+
+function ptc_should_load_admin_assets($hook) {
+    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+
+    return $page === PTC_PLUGIN_SETTINGS_PAGE_TYPE || ptc_should_load_order_admin_assets($hook);
+}
+
 function enqueue_custom_admin_script($hook) {
+
+    if (!ptc_should_load_admin_assets($hook)) {
+        return;
+    }
 
     wp_enqueue_style(
         'ptc-admin-css', 

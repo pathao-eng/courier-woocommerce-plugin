@@ -95,8 +95,11 @@ function render_form_group($label, $input, $formGroupClass = '')
 }
 
 
-function ptc_render_store_modal_content()
+function ptc_render_store_modal_content($hook = '')
 {
+    if (function_exists('ptc_should_load_order_admin_assets') && !ptc_should_load_order_admin_assets($hook)) {
+        return;
+    }
 
     $nameForm = render_form_group('Name', '<input type="text" id="ptc_wc_order_name" name="name" value="">');
     $phoneForm = render_form_group('Phone', '<input type="text" id="ptc_wc_order_phone" name="phone" value="">');
@@ -210,8 +213,12 @@ function ptc_render_store_modal_content()
 
 add_action('admin_enqueue_scripts', 'ptc_render_store_modal_content');
 
-function ptc_render_bulk_modal_content()
+function ptc_render_bulk_modal_content($hook = '')
 {
+    if (function_exists('ptc_should_load_order_admin_assets') && !ptc_should_load_order_admin_assets($hook)) {
+        return;
+    }
+
     echo
         '<div id="ptc-bulk-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.5); z-index: 10000;">
