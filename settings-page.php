@@ -4,8 +4,8 @@ defined('PTC_PLUGIN_PAGE_TYPE') || define('PTC_PLUGIN_PAGE_TYPE', 'pt_hms_orders
 defined('PTC_PLUGIN_SETTINGS_PAGE_TYPE') || define('PTC_PLUGIN_SETTINGS_PAGE_TYPE', 'pt_hms_settings');
 
 add_action('wp_ajax_pathao_verify_credentials', 'pathao_verify_credentials_callback');
+add_action('wp_ajax_pathao_save_settings', 'pathao_save_settings_callback');
 add_action('wp_ajax_reset_token', 'ajax_reset_token');
-add_action('update_option_pt_hms_settings', 'pt_hms_on_option_update', 10, 3);
 add_action('admin_menu', 'pt_hms_menu_page'); // Admin menu setup, Pathao Courier page
 add_action('admin_menu', 'pt_hms_orders_page'); // submenu settings page
 add_action('admin_init', 'pt_hms_settings_init');
@@ -67,6 +67,57 @@ function pathao_verify_credentials_callback()
     ));
 }
 
+function pathao_save_settings_callback()
+{
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => __('Unauthorized user privileges.', 'pathao-courier')), 403);
+    }
+
+    check_ajax_referer('pathao_save_settings_nonce', 'security');
+
+    $submitted = isset($_POST['pt_hms_settings']) && is_array($_POST['pt_hms_settings'])
+        ? wp_unslash($_POST['pt_hms_settings'])
+        : array();
+
+    $environment = isset($submitted['environment'])
+        ? sanitize_key($submitted['environment'])
+        : 'live';
+
+    if (!in_array($environment, array('live', 'staging'), true)) {
+        wp_send_json_error(array('message' => __('Invalid API environment.', 'pathao-courier')), 400);
+    }
+
+    $current = get_option('pt_hms_settings', array());
+    $current = is_array($current) ? $current : array();
+
+    $settings = array_merge($current, array(
+        'client_id' => isset($submitted['client_id'])
+            ? sanitize_text_field($submitted['client_id'])
+            : '',
+        'client_secret' => isset($submitted['client_secret'])
+            ? sanitize_text_field($submitted['client_secret'])
+            : '',
+        'environment' => $environment,
+        'webhook_secret' => isset($submitted['webhook_secret'])
+            ? sanitize_text_field($submitted['webhook_secret'])
+            : '',
+    ));
+
+    $credentials_changed = ($current['client_id'] ?? '') !== $settings['client_id']
+        || ($current['client_secret'] ?? '') !== $settings['client_secret']
+        || ($current['environment'] ?? 'live') !== $settings['environment'];
+
+    update_option('pt_hms_settings', $settings);
+
+    if ($credentials_changed) {
+        delete_option('pt_hms_token_data');
+    }
+
+    wp_send_json_success(array(
+        'message' => __('Settings saved successfully.', 'pathao-courier'),
+    ));
+}
+
 function ajax_reset_token()
 {
     if (!current_user_can('manage_options')) {
@@ -81,13 +132,6 @@ function ajax_reset_token()
     } else {
         wp_send_json_error(array('message' => 'Failed to retrieve the token.'));
     }
-}
-
-function pt_hms_on_option_update($old_value, $new_value, $option)
-{
-    // Credentials changed, so discard the old token. A new token is only
-    // requested explicitly through the asynchronous connection test.
-    delete_option('pt_hms_token_data');
 }
 
 function pt_hms_menu_page()
@@ -116,7 +160,7 @@ function pt_hms_settings_page_callback()
                 <img src="<?php echo PTC_PLUGIN_URL . 'assets/images/courier-logo.svg'; ?>" 
                      alt="Pathao Courier Logo" 
                      style="height: 35px;">
-                <h1 style="margin: 0; padding: 0; font-size: 23px; font-weight: 400;">Pathao Courier Settings</h1>
+                <h1 style="margin: 0; padding: 0; font-size: 23px; font-weight: 400;">Pathao Courier Settings 1</h1>
             </div>
             </div>
         </div>
@@ -172,6 +216,7 @@ function pt_hms_settings_page_callback()
                 do_settings_sections('pt_hms_settings');
                 submit_button('Save Settings');
                 ?>
+                <span id="pathao-settings-save-feedback" style="margin-left: 8px;" aria-live="polite"></span>
             </form>
         </div>
 
@@ -258,6 +303,54 @@ function pt_hms_settings_page_callback()
                         setTimeout(() => toast.remove(), 300);
                     }, 4000);
                 }
+
+                $('form[action="options.php"]').on('submit', function (event) {
+                    event.preventDefault();
+
+                    const $form = $(this);
+                    const $button = $form.find(':submit').first();
+                    const $feedback = $('#pathao-settings-save-feedback');
+                    const originalLabel = $button.val();
+                    const data = $form.serializeArray();
+
+                    data.push({ name: 'action', value: 'pathao_save_settings' });
+                    data.push({
+                        name: 'security',
+                        value: '<?php echo esc_js(wp_create_nonce('pathao_save_settings_nonce')); ?>'
+                    });
+
+                    $button.prop('disabled', true).val('Saving...');
+                    $feedback.css('color', '').text('');
+
+                    $.ajax({
+                        url: ajaxurl,
+                        method: 'POST',
+                        data: data,
+                        success: function (response) {
+                            if (response.success) {
+                                showToast('Success', response.data.message, 'success');
+                                $feedback.css('color', '#008a20').text('\u2714 ' + response.data.message);
+                                return;
+                            }
+
+                            const message = response.data && response.data.message
+                                ? response.data.message
+                                : 'Settings could not be saved.';
+                            showToast('Save Failed', message);
+                            $feedback.css('color', '#d63638').text('\u2716 ' + message);
+                        },
+                        error: function (xhr) {
+                            const message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message
+                                ? xhr.responseJSON.data.message
+                                : 'The server could not save the settings. Please try again.';
+                            showToast('Save Failed', message);
+                            $feedback.css('color', '#d63638').text('\u2716 ' + message);
+                        },
+                        complete: function () {
+                            $button.prop('disabled', false).val(originalLabel);
+                        }
+                    });
+                });
 
                 $('#fetch-token-btn').on('click', function () {
                     const $btn = $(this);
