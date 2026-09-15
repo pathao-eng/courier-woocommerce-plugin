@@ -24,24 +24,44 @@ function issue_access_token($clientId = null, $clientSecret = null, $environment
 
     $base_url = get_base_url($environment) . "/aladdin/api/v1/external/login";
 
-    $response = wp_remote_post($base_url, array(
+    $response = wp_safe_remote_post($base_url, array(
+        'timeout' => 30,
+        'redirection' => 5,
+        'httpversion' => '1.1',
         'headers' => array(
             'accept' => 'application/json',
             'content-type' => 'application/json'
         ),
-        'body' => json_encode(array(
+        'body' => wp_json_encode(array(
             'client_id' => $clientId,
             'client_secret' => $clientSecret,
         ))
     ));
 
     if (is_wp_error($response)) {
-        return $response->get_error_message();
+        return $response;
     }
 
     $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
 
-    return json_decode($body, true);
+    if (!is_array($data)) {
+        return new WP_Error(
+            'pathao_invalid_response',
+            __('The Pathao API returned an invalid response.', 'pathao-courier')
+        );
+    }
+
+    $response_code = wp_remote_retrieve_response_code($response);
+    if ($response_code < 200 || $response_code >= 300) {
+        $message = !empty($data['message'])
+            ? sanitize_text_field($data['message'])
+            : __('The Pathao API rejected the connection request.', 'pathao-courier');
+
+        return new WP_Error('pathao_api_error', $message, array('status' => $response_code));
+    }
+
+    return $data;
 }
 
 function pt_hms_get_token($reset = false)
@@ -53,23 +73,26 @@ function pt_hms_get_token($reset = false)
     if ($reset) {
         $new_token_response = issue_access_token();
 
-        if (isset($new_token_response['access_token'])) {
+        if (is_array($new_token_response) && isset($new_token_response['access_token'])) {
             // Update token data.
-            update_option('pt_hms_token_data', transformTokenResponse($new_token_response));
+            $token_data = transformTokenResponse($new_token_response);
+            update_option('pt_hms_token_data', $token_data);
         }
     } elseif ($token_data && time() > $token_data['expires_in']) {
         $refresh_response = issue_access_token();
 
-        if (isset($refresh_response['access_token'])) {
+        if (is_array($refresh_response) && isset($refresh_response['access_token'])) {
             // Update token data.
-            update_option('pt_hms_token_data', transformTokenResponse($refresh_response));
+            $token_data = transformTokenResponse($refresh_response);
+            update_option('pt_hms_token_data', $token_data);
         }
     } elseif (!$token_data) {
         // If the token does not exist, issue a new token.
         $new_token_response = issue_access_token();
-        if (isset($new_token_response['access_token'])) {
+        if (is_array($new_token_response) && isset($new_token_response['access_token'])) {
             // Save token data.
-            update_option('pt_hms_token_data', transformTokenResponse($new_token_response));
+            $token_data = transformTokenResponse($new_token_response);
+            update_option('pt_hms_token_data', $token_data);
         }
     }
 
@@ -85,8 +108,8 @@ function transformTokenResponse($refresh_response)
 {
     return array(
         'access_token' => $refresh_response['access_token'],
-        'refresh_token' => $refresh_response['refresh_token'],
-        'expires_in' => time() + $refresh_response['expires_in']
+        'refresh_token' => $refresh_response['refresh_token'] ?? '',
+        'expires_in' => time() + (int)($refresh_response['expires_in'] ?? 3600)
     );
 }
 
