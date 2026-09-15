@@ -26,6 +26,7 @@ defined( 'PTC_PLUGIN_PREFIX' ) || define( 'PTC_PLUGIN_PREFIX', 'ptc' );
 
 
 require_once PTC_PLUGIN_DIR.'/settings-page.php';
+require_once PTC_PLUGIN_DIR.'/custom-hooks-page.php';
 require_once PTC_PLUGIN_DIR.'/pathao-bridge.php';
 require_once PTC_PLUGIN_DIR.'/plugin-api.php';
 require_once PTC_PLUGIN_DIR.'/wc-order-list.php';

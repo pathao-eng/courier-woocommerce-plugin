@@ -3,32 +3,78 @@ defined('ABSPATH') || exit;
 defined('PTC_PLUGIN_PAGE_TYPE') || define('PTC_PLUGIN_PAGE_TYPE', 'pt_hms_orders');
 defined('PTC_PLUGIN_SETTINGS_PAGE_TYPE') || define('PTC_PLUGIN_SETTINGS_PAGE_TYPE', 'pt_hms_settings');
 
-add_action('wp_ajax_get_token', 'ajax_get_token');
+add_action('wp_ajax_pathao_verify_credentials', 'pathao_verify_credentials_callback');
 add_action('wp_ajax_reset_token', 'ajax_reset_token');
 add_action('update_option_pt_hms_settings', 'pt_hms_on_option_update', 10, 3);
 add_action('admin_menu', 'pt_hms_menu_page'); // Admin menu setup, Pathao Courier page
 add_action('admin_menu', 'pt_hms_orders_page'); // submenu settings page
 add_action('admin_init', 'pt_hms_settings_init');
 
-function ajax_get_token()
+function pathao_verify_credentials_callback()
 {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => __('Unauthorized user privileges.', 'pathao-courier')), 403);
+    }
+
+    check_ajax_referer('pathao_api_validation_nonce', 'security');
+
+    $client_id = isset($_POST['client_id'])
+        ? sanitize_text_field(wp_unslash($_POST['client_id']))
+        : '';
+    $client_secret = isset($_POST['client_secret'])
+        ? sanitize_text_field(wp_unslash($_POST['client_secret']))
+        : '';
+    $environment = isset($_POST['environment'])
+        ? sanitize_key(wp_unslash($_POST['environment']))
+        : 'live';
+
+    if (empty($client_id) || empty($client_secret)) {
+        wp_send_json_error(array('message' => __('Credentials cannot be empty.', 'pathao-courier')), 400);
+    }
+
+    if (!in_array($environment, array('live', 'staging'), true)) {
+        wp_send_json_error(array('message' => __('Invalid API environment.', 'pathao-courier')), 400);
+    }
+
     $data = issue_access_token(
-        $_POST['client_id'] ?? '',
-        $_POST['client_secret'] ?? '',
-        $_POST['environment'] ?? ''
+        $client_id,
+        $client_secret,
+        $environment
     );
 
-    $token = $data['access_token'] ?? null;
+    if (is_wp_error($data)) {
+        $error_data = $data->get_error_data();
+        $status = is_array($error_data) && !empty($error_data['status'])
+            ? (int)$error_data['status']
+            : 502;
 
-    if ($token) {
-        wp_send_json_success($data);
-    } else {
-        wp_send_json_error(array('message' => 'Failed to retrieve the token.'));
+        if ('pathao_api_error' !== $data->get_error_code()) {
+            error_log('Pathao API Transport Failure: ' . $data->get_error_message());
+        }
+
+        wp_send_json_error(array('message' => $data->get_error_message()), $status);
     }
+
+    if (empty($data['access_token'])) {
+        $message = !empty($data['message'])
+            ? sanitize_text_field($data['message'])
+            : __('The API credentials could not be verified.', 'pathao-courier');
+        wp_send_json_error(array('message' => $message), 401);
+    }
+
+    wp_send_json_success(array(
+        'message' => __('Connection established and verified successfully!', 'pathao-courier'),
+    ));
 }
 
 function ajax_reset_token()
 {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => __('Unauthorized user privileges.', 'pathao-courier')), 403);
+    }
+
+    check_ajax_referer('pathao_api_validation_nonce', 'security');
+
     $token = pt_hms_get_token(true);
     if ($token) {
         wp_send_json_success(array('access_token' => $token));
@@ -39,11 +85,9 @@ function ajax_reset_token()
 
 function pt_hms_on_option_update($old_value, $new_value, $option)
 {
-    // Reset the token stored in the database.
+    // Credentials changed, so discard the old token. A new token is only
+    // requested explicitly through the asynchronous connection test.
     delete_option('pt_hms_token_data');
-
-    // Fetch a new token.
-    pt_hms_get_token();
 }
 
 function pt_hms_menu_page()
@@ -62,14 +106,8 @@ function pt_hms_menu_page()
 // Render the settings page
 function pt_hms_settings_page_callback()
 {
-    $options = get_option('pt_hms_settings');
-    $all_fields_filled = isset(
-        $options['client_id'],
-        $options['client_secret'],
-        $options['environment']
-    );
-
-    $token = $all_fields_filled ? pt_hms_get_token() : null;
+    $token_data = get_option('pt_hms_token_data');
+    $token = is_array($token_data) && !empty($token_data['access_token']);
     ?>
     <div class="wrap">
         <div style="margin: 20px 0 20px;">
@@ -81,13 +119,6 @@ function pt_hms_settings_page_callback()
                 <h1 style="margin: 0; padding: 0; font-size: 23px; font-weight: 400;">Pathao Courier Settings</h1>
             </div>
             </div>
-            <?php if ($all_fields_filled && !$token): ?>
-                <div class="notice notice-error" style="margin: 15px 0 0;">
-                    <p>
-                        <strong>Error:</strong> API credentials are invalid. Please check your credentials and try again.
-                    </p>
-                </div>
-            <?php endif; ?>
         </div>
 
 
@@ -154,6 +185,7 @@ function pt_hms_settings_page_callback()
                     <span class="dashicons dashicons-test" style="margin: 4px 5px 0 0;"></span>
                     Test API Connection
                 </button>
+                <span id="pathao-connection-status-feedback" style="margin-left: 8px;" aria-live="polite"></span>
 
                 <?php if ($token): ?>
                     <button type="button" id="reset-token-btn" class="button">
@@ -206,12 +238,11 @@ function pt_hms_settings_page_callback()
         <script type="text/javascript">
             jQuery(document).ready(function ($) {
                 function showToast(title, message, type = 'error') {
-                    const toast = $(`
-                        <div class="ptc-toast ptc-toast-${type}">
-                            <div class="ptc-toast-title">${title}</div>
-                            <div class="ptc-toast-message">${message}</div>
-                        </div>
-                    `);
+                    const toast = $('<div>', {
+                        class: 'ptc-toast ptc-toast-' + (type === 'success' ? 'success' : 'error')
+                    });
+                    toast.append($('<div>', { class: 'ptc-toast-title', text: title }));
+                    toast.append($('<div>', { class: 'ptc-toast-message', text: message }));
 
                     $('#ptc-toast-container').append(toast);
 
@@ -230,7 +261,9 @@ function pt_hms_settings_page_callback()
 
                 $('#fetch-token-btn').on('click', function () {
                     const $btn = $(this);
+                    const $feedback = $('#pathao-connection-status-feedback');
                     $btn.prop('disabled', true).text('Testing...');
+                    $feedback.css('color', '').text('');
 
                     let clientId = $('#client_id').val();
                     let clientSecret = $('#client_secret').val();
@@ -238,6 +271,7 @@ function pt_hms_settings_page_callback()
 
                     if (!clientId || !clientSecret || !environment) {
                         showToast('Validation Error', 'Please fill in all required fields.');
+                        $feedback.css('color', '#d63638').text('Credentials cannot be empty.');
                         $btn.prop('disabled', false).html('<span class="dashicons dashicons-test" style="margin: 4px 5px 0 0;"></span>Test API Connection');
                         return;
                     }
@@ -246,20 +280,28 @@ function pt_hms_settings_page_callback()
                         url: ajaxurl,
                         method: 'POST',
                         data: {
-                            action: 'get_token',
+                            action: 'pathao_verify_credentials',
                             client_id: clientId,
                             client_secret: clientSecret,
-                            environment: environment
+                            environment: environment,
+                            security: '<?php echo esc_js(wp_create_nonce('pathao_api_validation_nonce')); ?>'
                         },
                         success: function (response) {
                             if (response.success) {
-                                showToast('Success', 'API connection successful!', 'success');
+                                showToast('Success', response.data.message, 'success');
+                                $feedback.css('color', '#008a20').text('\u2714 ' + response.data.message);
                             } else {
-                                showToast('Connection Failed', response.data.message);
+                                const message = response.data && response.data.message ? response.data.message : 'Unable to verify the API credentials.';
+                                showToast('Connection Failed', message);
+                                $feedback.css('color', '#d63638').text('\u2716 ' + message);
                             }
                         },
-                        error: function () {
-                            showToast('Error', 'Failed to retrieve token. Please check your credentials and try again.');
+                        error: function (xhr) {
+                            const message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message
+                                ? xhr.responseJSON.data.message
+                                : 'The connection test could not be completed. Please try again.';
+                            showToast('Connection Failed', message);
+                            $feedback.css('color', '#d63638').text('\u2716 ' + message);
                         },
                         complete: function () {
                             $btn.prop('disabled', false).html('<span class="dashicons dashicons-test" style="margin: 4px 5px 0 0;"></span>Test API Connection');
@@ -276,6 +318,7 @@ function pt_hms_settings_page_callback()
                         method: 'POST',
                         data: {
                             action: 'reset_token',
+                            security: '<?php echo esc_js(wp_create_nonce('pathao_api_validation_nonce')); ?>'
                         },
                         success: function (response) {
                             if (response.success) {
@@ -377,59 +420,9 @@ function pt_hms_settings_page_callback()
                             };
                         }
                     } else {
-                        fetchMerchantInfo();
+                        renderMerchantInfo(null);
                     }
                 } catch (e) {}
-
-                // AJAX-submit the settings form so we can trigger other actions without a full reload
-                var $settingsForm = $('form[action="options.php"]');
-                $settingsForm.on('submit', function (e) {
-                    e.preventDefault();
-
-                    var $form = $(this);
-                    var $btn = $form.find('input[type="submit"], button[type="submit"]').first();
-                    var originalText = '';
-
-                    if ($btn.length) {
-                        if ($btn.is('input')) {
-                            originalText = $btn.val();
-                            $btn.val('Saving...');
-                        } else {
-                            originalText = $btn.text();
-                            $btn.text('Saving...');
-                        }
-                        $btn.prop('disabled', true);
-                    }
-
-                    $.ajax({
-                        url: $form.attr('action'),
-                        method: $form.attr('method') || 'POST',
-                        data: $form.serialize(),
-                        success: function () {
-                            showToast('Success', 'Settings saved successfully.', 'success');
-                            // Refresh merchant info and stores after saving
-                            fetchMerchantInfo();
-                            if (typeof LocationDataManager !== 'undefined') {
-                                LocationDataManager.getStores(true).catch(function (err) {
-                                    console.error('Failed to refresh stores:', err);
-                                });
-                            }
-                        },
-                        error: function () {
-                            showToast('Error', 'Failed to save settings. Please try again.');
-                        },
-                        complete: function () {
-                            if ($btn.length) {
-                                $btn.prop('disabled', false);
-                                if ($btn.is('input')) {
-                                    $btn.val(originalText);
-                                } else {
-                                    $btn.text(originalText);
-                                }
-                            }
-                        }
-                    });
-                });
 
                 $('#ptc-refresh-merchant-btn').on('click', function () {
                     fetchMerchantInfo();
