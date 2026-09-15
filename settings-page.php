@@ -239,12 +239,12 @@ function pt_hms_settings_page_callback()
                 do_settings_sections('pt_hms_settings');
                 ?>
                 <div class="ptc-settings-actions">
-                    <button type="button" id="fetch-token-btn" class="button button-primary">
+                    <button type="button" id="fetch-token-btn" class="button button-primary"<?php echo $has_saved_credentials ? ' style="display: none;"' : ''; ?>>
                         <span class="dashicons dashicons-test" style="margin: 4px 5px 0 0;"></span>
                         Test API Connection
                     </button>
 
-                    <span id="pathao-save-settings-control"<?php echo $has_saved_credentials ? '' : ' style="display: none;"'; ?>>
+                    <span id="pathao-save-settings-control" style="display: none;">
                         <?php submit_button('Save Settings', 'primary', 'submit', false); ?>
                     </span>
 
@@ -328,10 +328,12 @@ function pt_hms_settings_page_callback()
 
                 $('#client_id, #client_secret, #client_environment').on('input change', function () {
                     if (credentialsMatchSaved()) {
-                        $('#pathao-save-settings-control, #reset-token-btn').show();
+                        $('#fetch-token-btn, #pathao-save-settings-control').hide();
+                        $('#reset-token-btn').show();
                         return;
                     }
 
+                    $('#fetch-token-btn').show();
                     $('#pathao-save-settings-control, #reset-token-btn').hide();
                     $('#pathao-settings-save-feedback, #pathao-connection-status-feedback').text('');
                 });
@@ -386,6 +388,7 @@ function pt_hms_settings_page_callback()
                                 $feedback.css('color', '#008a20').text('\u2714 ' + response.data.message);
                                 hasSavedCredentials = true;
                                 savedCredentials = currentCredentials();
+                                $('#pathao-save-settings-control').hide();
                                 $('#reset-token-btn').show();
                                 return;
                             }
@@ -440,6 +443,7 @@ function pt_hms_settings_page_callback()
                             if (response.success) {
                                 showToast('Success', response.data.message, 'success');
                                 $feedback.css('color', '#008a20').text('\u2714 ' + response.data.message);
+                                $('#fetch-token-btn').hide();
                                 $('#pathao-save-settings-control').show();
                             } else {
                                 const message = response.data && response.data.message ? response.data.message : 'Unable to verify the API credentials.';
