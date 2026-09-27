@@ -120,44 +120,25 @@ jQuery(document).ready(function ($) {
 
     function populateBulkModalData(data, stores, deliveryTypes, itemTypes) {
 
-        let defaultStore = ''
-
-        if (stores.length) {
-            defaultStore = stores.find(store => store.is_default_store)?.name || stores[0]?.name
-        }
-
-        let defaultDeliveryType = deliveryTypes[0].name
-        let defaultItemType = itemTypes[0].name
-
-        const defaults = data.pathao || {};
-        let address = defaults.recipient_address;
-        if (address === null || address === undefined) {
-            if (data?.shipping?.address_1 && data?.shipping?.address_2) {
-                address = `${data?.shipping?.address_1}, ${data?.shipping?.address_2}, ${data?.shipping?.city}, ${data?.shipping?.state}, ${data?.shipping?.postcode}`;
-            } else {
-                address = `${data?.billing?.address_1}, ${data?.billing?.address_2}, ${data?.billing?.city}, ${data?.billing?.state}, ${data?.billing?.postcode}`;
-            }
-        }
-
-        const productDescriptions = data?.items?.map(item => `${item.name} x${item.quantity}`).join('\n') || '';
+        const defaults = data.pathao;
 
         return {
             merchant_order_id: data.id,
-            recipient_name: defaults.recipient_name ?? data?.billing?.full_name,
-            recipient_phone: defaults.recipient_phone ?? data?.billing?.phone,
-            recipient_secondary_phone: defaults.recipient_secondary_phone ?? '',
-            recipient_address: address,
+            recipient_name: defaults.recipient_name,
+            recipient_phone: defaults.recipient_phone,
+            recipient_secondary_phone: defaults.recipient_secondary_phone,
+            recipient_address: defaults.recipient_address,
             recipient_city: null,
             recipient_zone: null,
             recipient_area: null,
-            amount_to_collect: defaults.amount_to_collect ?? data.total,
-            item_description: defaults.item_description ?? productDescriptions,
-            special_instruction: defaults.special_instruction ?? '',
-            store_id: stores.find(item => item.id == defaults.store_id)?.name ?? defaultStore,
-            delivery_type: deliveryTypes.find(item => item.id == defaults.delivery_type)?.name ?? defaultDeliveryType,
-            item_type: itemTypes.find(item => item.id == defaults.item_type)?.name ?? defaultItemType,
-            item_quantity: defaults.item_quantity ?? data?.items.length,
-            item_weight: defaults.item_weight ?? 0.5
+            amount_to_collect: defaults.amount_to_collect,
+            item_description: defaults.item_description,
+            special_instruction: defaults.special_instruction,
+            store_id: stores.find(item => item.id == defaults.store_id)?.name ?? '',
+            delivery_type: deliveryTypes.find(item => item.id == defaults.delivery_type)?.name ?? '',
+            item_type: itemTypes.find(item => item.id == defaults.item_type)?.name ?? '',
+            item_quantity: defaults.item_quantity,
+            item_weight: defaults.item_weight
         }
 
     }
@@ -460,9 +441,9 @@ jQuery(document).ready(function ($) {
             const orderId = hotInstance.getDataAtCell(rowIndex, 0);
             const orderDetails = orderBulkDetails.find((item) => item.id === orderId);
 
-            let defaultCityId = orderDetails?.pathao?.recipient_city ?? orderDetails?.shipping?.city_id ?? orderDetails?.billing?.city_id;
-            let defaultZoneId = orderDetails?.pathao?.recipient_zone ?? orderDetails?.shipping?.zone_id ?? orderDetails?.billing?.zone_id;
-            let defaultAreaId = orderDetails?.pathao?.recipient_area ?? orderDetails?.shipping?.area_id ?? orderDetails?.billing?.area_id;
+            let defaultCityId = orderDetails?.pathao?.recipient_city;
+            let defaultZoneId = orderDetails?.pathao?.recipient_zone;
+            let defaultAreaId = orderDetails?.pathao?.recipient_area;
 
             if (defaultCityId) {
                 let defaultCity = cities.find((city) => city.id == defaultCityId);
@@ -512,8 +493,6 @@ jQuery(document).ready(function ($) {
         }
     }
 
-    const form = $('#wc-orders-filter');
-
     $(document).on('click', '#ptc-bulk-modal-overlay', function (e) {
         if (e.target === this) {
             $(this).fadeOut();
@@ -527,15 +506,15 @@ jQuery(document).ready(function ($) {
         openModal()
     });
 
-    form.on('click', 'input[type="submit"][name="bulk_action"], button[type="submit"][name="bulk_action"]', function (e) {
-
-        const action = $('select[name="action"]').val() || $('select[name="action2"]').val();
+    $(document).on('click', '#posts-filter #doaction, #posts-filter #doaction2, #wc-orders-filter #doaction, #wc-orders-filter #doaction2, #posts-filter [name="bulk_action"], #wc-orders-filter [name="bulk_action"]', function (e) {
+        const form = $(this).closest('form');
+        const actionName = this.id === 'doaction2' ? 'action2' : 'action';
+        const action = form.find(`select[name="${actionName}"]`).val();
 
         if (action === 'send_with_pathao') {
             e.preventDefault();
             list.empty();
-
-            openModal()
+            openModal();
         }
     });
 
