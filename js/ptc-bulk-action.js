@@ -493,8 +493,6 @@ jQuery(document).ready(function ($) {
         }
     }
 
-    const form = $('#wc-orders-filter');
-
     $(document).on('click', '#ptc-bulk-modal-overlay', function (e) {
         if (e.target === this) {
             $(this).fadeOut();
@@ -508,15 +506,15 @@ jQuery(document).ready(function ($) {
         openModal()
     });
 
-    form.on('click', 'input[type="submit"][name="bulk_action"], button[type="submit"][name="bulk_action"]', function (e) {
-
-        const action = $('select[name="action"]').val() || $('select[name="action2"]').val();
+    $(document).on('click', '#posts-filter #doaction, #posts-filter #doaction2, #wc-orders-filter #doaction, #wc-orders-filter #doaction2, #posts-filter [name="bulk_action"], #wc-orders-filter [name="bulk_action"]', function (e) {
+        const form = $(this).closest('form');
+        const actionName = this.id === 'doaction2' ? 'action2' : 'action';
+        const action = form.find(`select[name="${actionName}"]`).val();
 
         if (action === 'send_with_pathao') {
             e.preventDefault();
             list.empty();
-
-            openModal()
+            openModal();
         }
     });
 
