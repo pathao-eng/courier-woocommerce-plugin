@@ -95,38 +95,27 @@ jQuery(document).ready(function ($) {
             $('.courier-settings').show();
             $('#ptc-submit-button').show();
 
-            const defaults = orderData.pathao || {};
-            let address = defaults.recipient_address;
-            if (address === null || address === undefined) {
-                if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
-                    address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
-                } else {
-                    address = `${orderData?.billing?.address_1}, ${orderData?.billing?.address_2}, ${orderData?.billing?.city}, ${orderData?.billing?.state}, ${orderData?.billing?.postcode}`;
-                }
-            }
-
-            nameInput.val(defaults.recipient_name ?? orderData?.billing?.full_name);
-            phoneInput.val(defaults.recipient_phone ?? orderData?.billing?.phone);
-            shippingAddressInput.val(address);
-            secondaryPhoneInput.val(defaults.recipient_secondary_phone ?? '');
-            specialInstructionInput.val(defaults.special_instruction ?? '');
-            deliveryTypeInput.val(defaults.delivery_type ?? 48);
-            itemTypeInput.val(defaults.item_type ?? 2);
+            const defaults = orderData.pathao;
+            nameInput.val(defaults.recipient_name);
+            phoneInput.val(defaults.recipient_phone);
+            shippingAddressInput.val(defaults.recipient_address);
+            secondaryPhoneInput.val(defaults.recipient_secondary_phone);
+            specialInstructionInput.val(defaults.special_instruction);
+            deliveryTypeInput.val(defaults.delivery_type);
+            itemTypeInput.val(defaults.item_type);
 
             totalPriceDom.html(`${orderData.total} ${orderData.currency}`);
 
             // check payment date, if payment date is available then set total price to 0
             if (orderData?.payment_date) {
-                totalPriceInput.val(0);
                 $('#ptc_wc_order_payment_status').html('paid');
             } else {
-                totalPriceInput.val(orderData.total);
                 $('#ptc_wc_order_payment_status').html('unpaid');
             }
 
-            totalPriceInput.val(defaults.amount_to_collect ?? (orderData.payment_date ? 0 : orderData.total));
-            totalWeightInput.val(defaults.item_weight ?? (orderData.total_weight || 0.5));
-            totalQuantityInput.val(defaults.item_quantity ?? orderData.total_items);
+            totalPriceInput.val(defaults.amount_to_collect);
+            totalWeightInput.val(defaults.item_weight);
+            totalQuantityInput.val(defaults.item_quantity);
 
             let orderItems = '';
 
@@ -146,14 +135,13 @@ jQuery(document).ready(function ($) {
 
             await populateStores(defaults.store_id);
             if (!ptcSkipLocationFields) {
-                let defaultCityId = defaults.recipient_city ?? orderData?.shipping?.city_id ?? orderData?.billing?.city_id;
-                let defaultZoneId = defaults.recipient_zone ?? orderData?.shipping?.zone_id ?? orderData?.billing?.zone_id;
-                let defaultAreaId = defaults.recipient_area ?? orderData?.shipping?.area_id ?? orderData?.billing?.area_id;
+                let defaultCityId = defaults.recipient_city;
+                let defaultZoneId = defaults.recipient_zone;
+                let defaultAreaId = defaults.recipient_area;
                 await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId);
             }
 
-            const productDescriptions = orderData?.items?.map(item => `${item.name} x${item.quantity}`).join('\n');
-            itemDescriptionInput.val(defaults.item_description ?? productDescriptions);
+            itemDescriptionInput.val(defaults.item_description);
         }
     }
 
@@ -372,7 +360,7 @@ jQuery(document).ready(function ($) {
         const stores = await LocationDataManager.getStores();
         let options = '<option value="">Select store</option>';
 
-        let defaultStoreId = preferredStoreId ?? (stores.find(store => store.is_default_store)?.id || stores[0]?.id);
+        let defaultStoreId = preferredStoreId;
 
         stores?.forEach(function (store) {
             let selected = store.id == defaultStoreId ? 'selected' : '';
