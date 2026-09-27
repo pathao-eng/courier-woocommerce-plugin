@@ -158,11 +158,16 @@ Use valid option IDs for store, delivery type, and item type; use location IDs
 belonging to the selected parent for city, zone, and area. Location overrides
 apply only when location selectors are enabled for the merchant.
 
-This filter prefills both single and bulk modals. Users can edit the values before
-submitting. Missing or null values preserve each modal's existing defaults;
-explicit zero and empty strings are retained for numeric and text fields.
-The original four text fields retain their existing defaults; additional fields
-default to null. The WooCommerce order ID remains unchanged.
+The API resolves all defaults before this filter runs. Both modals use these values:
+product weight (or `0.5`), total item quantity, zero collection amount for paid orders
+(otherwise the order total), delivery type `48`, item type `2`, and the default
+store (or the first store). Locations use shipping IDs with billing IDs as fallback;
+optional text fields start empty. If no store is available, its ID is `0`.
+
+Users can edit these values before submitting. Missing or null filter values use
+the API defaults; zero and empty strings are preserved. The WooCommerce order ID
+remains unchanged. Store defaults are fetched once per order-data request, including
+bulk requests.
 
 ### Filters — Final API Payload
 

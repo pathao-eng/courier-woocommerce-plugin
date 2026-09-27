@@ -364,24 +364,43 @@ function getPtOrderData($order): array
         $context
     );
 
-    $orderData['pathao'] = apply_filters('pathao_modal_order_data', [
+    // Resolve once per request, including requests containing multiple orders.
+    static $defaultStoreId = null;
+    if ($defaultStoreId === null) {
+        $stores = pt_hms_get_stores();
+        $defaultStoreId = (int)($stores[0]['store_id'] ?? 0);
+        foreach ($stores as $store) {
+            if (!empty($store['is_default_store'])) {
+                $defaultStoreId = (int)$store['store_id'];
+                break;
+            }
+        }
+    }
+
+    $modalDefaults = [
         'recipient_name'    => sanitize_text_field($recipientName),
         'recipient_phone'   => sanitize_text_field($recipientPhone),
         'recipient_address' => sanitize_text_field($recipientAddress),
         'item_description'  => sanitize_textarea_field($itemDescription),
-        // Null preserves the modal default; explicit values prefill the field.
-        'recipient_secondary_phone' => null,
-        'recipient_city' => null,
-        'recipient_zone' => null,
-        'recipient_area' => null,
-        'amount_to_collect' => null,
-        'special_instruction' => null,
-        'store_id' => null,
-        'delivery_type' => null,
-        'item_type' => null,
-        'item_quantity' => null,
-        'item_weight' => null,
-    ], $order, $context);
+        'recipient_secondary_phone' => '',
+        'recipient_city' => $orderData['shipping']['city_id'] ?: $orderData['billing']['city_id'],
+        'recipient_zone' => $orderData['shipping']['zone_id'] ?: $orderData['billing']['zone_id'],
+        'recipient_area' => $orderData['shipping']['area_id'] ?: $orderData['billing']['area_id'],
+        'amount_to_collect' => $orderData['payment_date'] ? 0 : $orderData['total'],
+        'special_instruction' => '',
+        'store_id' => $defaultStoreId,
+        'delivery_type' => 48,
+        'item_type' => 2,
+        'item_quantity' => $orderItems,
+        'item_weight' => $totalWeight > 0 ? $totalWeight : 0.5,
+    ];
+    $filteredDefaults = apply_filters('pathao_modal_order_data', $modalDefaults, $order, $context);
+    $orderData['pathao'] = $modalDefaults;
+    if (is_array($filteredDefaults)) {
+        foreach ($modalDefaults as $field => $default) {
+            $orderData['pathao'][$field] = $filteredDefaults[$field] ?? $default;
+        }
+    }
 
     return $orderData;
 }
