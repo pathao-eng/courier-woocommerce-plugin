@@ -135,7 +135,34 @@ These filters run when order data is fetched for the single/bulk modal. They let
 | `pathao_modal_recipient_phone` | Billing phone | `$value, $order, $context` |
 | `pathao_modal_recipient_address` | Shipping or billing address | `$value, $order, $context` |
 | `pathao_modal_item_description` | Product names x quantity | `$value, $order, $context` |
-| `pathao_modal_order_data` | Array of all 4 fields above | `$data, $order, $context` |
+| `pathao_modal_order_data` | Modal field defaults (see below) | `$data, $order, $context` |
+
+### Example — Prefill editable modal fields
+
+```php
+add_filter( 'pathao_modal_order_data', function ( $data, $order ) {
+    $data['item_weight'] = 0.2;
+    $data['item_quantity'] = 1;
+    $data['amount_to_collect'] = 0;
+    $data['special_instruction'] = 'Call before delivery';
+    return $data;
+}, 10, 2 );
+```
+
+Supported keys are `recipient_name`, `recipient_phone`, `recipient_secondary_phone`,
+`recipient_address`, `item_description`, `special_instruction`, `item_weight`,
+`item_quantity`, `amount_to_collect`, `store_id`, `delivery_type`, `item_type`,
+`recipient_city`, `recipient_zone`, and `recipient_area`.
+
+Use valid option IDs for store, delivery type, and item type; use location IDs
+belonging to the selected parent for city, zone, and area. Location overrides
+apply only when location selectors are enabled for the merchant.
+
+This filter prefills both single and bulk modals. Users can edit the values before
+submitting. Missing or null values preserve each modal's existing defaults;
+explicit zero and empty strings are retained for numeric and text fields.
+The original four text fields retain their existing defaults; additional fields
+default to null. The WooCommerce order ID remains unchanged.
 
 ### Filters — Final API Payload
 

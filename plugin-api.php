@@ -369,6 +369,18 @@ function getPtOrderData($order): array
         'recipient_phone'   => sanitize_text_field($recipientPhone),
         'recipient_address' => sanitize_text_field($recipientAddress),
         'item_description'  => sanitize_textarea_field($itemDescription),
+        // Null preserves the modal default; explicit values prefill the field.
+        'recipient_secondary_phone' => null,
+        'recipient_city' => null,
+        'recipient_zone' => null,
+        'recipient_area' => null,
+        'amount_to_collect' => null,
+        'special_instruction' => null,
+        'store_id' => null,
+        'delivery_type' => null,
+        'item_type' => null,
+        'item_quantity' => null,
+        'item_weight' => null,
     ], $order, $context);
 
     return $orderData;
