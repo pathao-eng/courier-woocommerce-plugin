@@ -95,8 +95,9 @@ jQuery(document).ready(function ($) {
             $('.courier-settings').show();
             $('#ptc-submit-button').show();
 
-            let address = orderData?.pathao?.recipient_address || '';
-            if (!address) {
+            const defaults = orderData.pathao || {};
+            let address = defaults.recipient_address;
+            if (address === null || address === undefined) {
                 if (orderData?.shipping?.address_1 && orderData?.shipping?.address_2) {
                     address = `${orderData?.shipping?.address_1}, ${orderData?.shipping?.address_2}, ${orderData?.shipping?.city}, ${orderData?.shipping?.state}, ${orderData?.shipping?.postcode}`;
                 } else {
@@ -104,9 +105,13 @@ jQuery(document).ready(function ($) {
                 }
             }
 
-            nameInput.val(orderData?.pathao?.recipient_name || orderData?.billing?.full_name);
-            phoneInput.val(orderData?.pathao?.recipient_phone || orderData?.billing?.phone);
+            nameInput.val(defaults.recipient_name ?? orderData?.billing?.full_name);
+            phoneInput.val(defaults.recipient_phone ?? orderData?.billing?.phone);
             shippingAddressInput.val(address);
+            secondaryPhoneInput.val(defaults.recipient_secondary_phone ?? '');
+            specialInstructionInput.val(defaults.special_instruction ?? '');
+            deliveryTypeInput.val(defaults.delivery_type ?? 48);
+            itemTypeInput.val(defaults.item_type ?? 2);
 
             totalPriceDom.html(`${orderData.total} ${orderData.currency}`);
 
@@ -119,8 +124,9 @@ jQuery(document).ready(function ($) {
                 $('#ptc_wc_order_payment_status').html('unpaid');
             }
 
-            totalWeightInput.val(orderData.total_weight ? orderData.total_weight : 0.5);
-            totalQuantityInput.val(orderData.total_items);
+            totalPriceInput.val(defaults.amount_to_collect ?? (orderData.payment_date ? 0 : orderData.total));
+            totalWeightInput.val(defaults.item_weight ?? (orderData.total_weight || 0.5));
+            totalQuantityInput.val(defaults.item_quantity ?? orderData.total_items);
 
             let orderItems = '';
 
@@ -138,21 +144,16 @@ jQuery(document).ready(function ($) {
             orderTotalItemsDom.html(orderData?.total_items);
             orderItemsDom.html(orderItems);
 
-            await populateStores();
+            await populateStores(defaults.store_id);
             if (!ptcSkipLocationFields) {
-                let defaultCityId = orderData?.shipping?.city_id ?? orderData?.billing?.city_id;
-                let defaultZoneId = orderData?.shipping?.zone_id ?? orderData?.billing?.zone_id;
-                let defaultAreaId = orderData?.shipping?.area_id ?? orderData?.billing?.area_id;
+                let defaultCityId = defaults.recipient_city ?? orderData?.shipping?.city_id ?? orderData?.billing?.city_id;
+                let defaultZoneId = defaults.recipient_zone ?? orderData?.shipping?.zone_id ?? orderData?.billing?.zone_id;
+                let defaultAreaId = defaults.recipient_area ?? orderData?.shipping?.area_id ?? orderData?.billing?.area_id;
                 await populateCityZoneArea(defaultCityId, defaultZoneId, defaultAreaId);
             }
 
-            // Autofill item description — prefer filtered value, fallback to product name + quantity
-            if (orderData?.pathao?.item_description) {
-                itemDescriptionInput.val(orderData.pathao.item_description);
-            } else {
-                const productDescriptions = orderData?.items?.map(item => `${item.name} x${item.quantity}`).join('\n');
-                itemDescriptionInput.val(productDescriptions);
-            }
+            const productDescriptions = orderData?.items?.map(item => `${item.name} x${item.quantity}`).join('\n');
+            itemDescriptionInput.val(defaults.item_description ?? productDescriptions);
         }
     }
 
@@ -328,10 +329,6 @@ jQuery(document).ready(function ($) {
 
         cityDom.html(options);
 
-        if (defaultCityId) {
-            cityDom.trigger('change');
-        }
-
         cityDom.off('change').on('change', async function () {
             zoneDom.html('<option value="">Select Zone</option>');
             areaDom.html('<option value="">Select Area</option>');
@@ -371,11 +368,11 @@ jQuery(document).ready(function ($) {
         }
     }
 
-    async function populateStores() {
+    async function populateStores(preferredStoreId) {
         const stores = await LocationDataManager.getStores();
         let options = '<option value="">Select store</option>';
 
-        let defaultStoreId = stores.find(store => store.is_default_store)?.id || stores[0]?.id;
+        let defaultStoreId = preferredStoreId ?? (stores.find(store => store.is_default_store)?.id || stores[0]?.id);
 
         stores?.forEach(function (store) {
             let selected = store.id == defaultStoreId ? 'selected' : '';

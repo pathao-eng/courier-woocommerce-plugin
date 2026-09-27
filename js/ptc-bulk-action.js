@@ -129,8 +129,9 @@ jQuery(document).ready(function ($) {
         let defaultDeliveryType = deliveryTypes[0].name
         let defaultItemType = itemTypes[0].name
 
-        let address = data?.pathao?.recipient_address || '';
-        if (!address) {
+        const defaults = data.pathao || {};
+        let address = defaults.recipient_address;
+        if (address === null || address === undefined) {
             if (data?.shipping?.address_1 && data?.shipping?.address_2) {
                 address = `${data?.shipping?.address_1}, ${data?.shipping?.address_2}, ${data?.shipping?.city}, ${data?.shipping?.state}, ${data?.shipping?.postcode}`;
             } else {
@@ -142,21 +143,21 @@ jQuery(document).ready(function ($) {
 
         return {
             merchant_order_id: data.id,
-            recipient_name: data?.pathao?.recipient_name || data?.billing?.full_name,
-            recipient_phone: data?.pathao?.recipient_phone || data?.billing?.phone,
-            recipient_secondary_phone: '',
+            recipient_name: defaults.recipient_name ?? data?.billing?.full_name,
+            recipient_phone: defaults.recipient_phone ?? data?.billing?.phone,
+            recipient_secondary_phone: defaults.recipient_secondary_phone ?? '',
             recipient_address: address,
             recipient_city: null,
             recipient_zone: null,
             recipient_area: null,
-            amount_to_collect: data.total,
-            item_description: data?.pathao?.item_description || productDescriptions,
-            special_instruction: '',
-            store_id: defaultStore,
-            delivery_type: defaultDeliveryType,
-            item_type: defaultItemType,
-            item_quantity: data?.items.length,
-            item_weight: 0.5
+            amount_to_collect: defaults.amount_to_collect ?? data.total,
+            item_description: defaults.item_description ?? productDescriptions,
+            special_instruction: defaults.special_instruction ?? '',
+            store_id: stores.find(item => item.id == defaults.store_id)?.name ?? defaultStore,
+            delivery_type: deliveryTypes.find(item => item.id == defaults.delivery_type)?.name ?? defaultDeliveryType,
+            item_type: itemTypes.find(item => item.id == defaults.item_type)?.name ?? defaultItemType,
+            item_quantity: defaults.item_quantity ?? data?.items.length,
+            item_weight: defaults.item_weight ?? 0.5
         }
 
     }
@@ -459,12 +460,12 @@ jQuery(document).ready(function ($) {
             const orderId = hotInstance.getDataAtCell(rowIndex, 0);
             const orderDetails = orderBulkDetails.find((item) => item.id === orderId);
 
-            let defaultCityId = orderDetails?.shipping?.city_id ?? orderDetails?.billing?.city_id;
-            let defaultZoneId = orderDetails?.shipping?.zone_id ?? orderDetails?.billing?.zone_id;
-            let defaultAreaId = orderDetails?.shipping?.area_id ?? orderDetails?.billing?.area_id;
+            let defaultCityId = orderDetails?.pathao?.recipient_city ?? orderDetails?.shipping?.city_id ?? orderDetails?.billing?.city_id;
+            let defaultZoneId = orderDetails?.pathao?.recipient_zone ?? orderDetails?.shipping?.zone_id ?? orderDetails?.billing?.zone_id;
+            let defaultAreaId = orderDetails?.pathao?.recipient_area ?? orderDetails?.shipping?.area_id ?? orderDetails?.billing?.area_id;
 
             if (defaultCityId) {
-                let defaultCity = cities.find((city) => city.id === defaultCityId);
+                let defaultCity = cities.find((city) => city.id == defaultCityId);
                 if (defaultCity) {
                     const defaultCityName = LocationDataManager.normalize(defaultCity.name);
                     hotInstance.setDataAtCell(rowIndex, 4, defaultCityName);
