@@ -163,7 +163,7 @@ function pt_hms_settings_page_callback()
                 <img src="<?php echo PTC_PLUGIN_URL . 'assets/images/courier-logo.svg'; ?>" 
                      alt="Pathao Courier Logo" 
                      style="height: 35px;">
-                <h1 style="margin: 0; padding: 0; font-size: 23px; font-weight: 400;">Pathao Courier Settings 1</h1>
+                <h1 style="margin: 0; padding: 0; font-size: 23px; font-weight: 400;">Pathao Courier Settings</h1>
             </div>
             </div>
         </div>
